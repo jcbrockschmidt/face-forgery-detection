@@ -14,8 +14,9 @@ import os
 from glob import glob
 from sys import exit, stderr
 
-COMPRESSION_LEVEL = 'c0'
-ZOOMOUT_FACTOR = 1.8
+COMPRESSION_LEVEL = 'c0'  # c0, c23, c40
+ZOOMOUT_FACTOR = 1.8  # [1, ...]
+ZOOMOUT_Y_BIAS = 0.7  # [0, 1]
 CROP_SIZE = 256
 
 class FFVideoSeq:
@@ -54,30 +55,34 @@ def crop_face(img, location, scale_size=256, zoomout=ZOOMOUT_FACTOR):
     size = max(rt - lt, bot - top)
 
     # Expand by zoomout factor.
-    size = int(size * zoomout)
+    zoomout_size = int(size * zoomout)
 
     # Calculate new crop boundaries.
     # Constrain new boundaries within image boundaries.
     img_h, img_w, _ = img.shape
     center_x = int((lt + rt) / 2)
     center_y = int((top + bot) / 2)
-    shift = int(size / 2)
+    shift = int(zoomout_size / 2)
+    size_diff = zoomout_size - size
+    y1shift = int(size / 2 + size_diff * ZOOMOUT_Y_BIAS)
+    y2shift = int(size / 2 + size_diff * (1 - ZOOMOUT_Y_BIAS))
     x1 = max(center_x - shift, 0)
     x2 = min(center_x + shift, img_w)
-    y1 = max(center_y - shift, 0)
-    y2 = min(center_y + shift, img_h)
+    y1 = max(center_y - y1shift, 0)
+    y2 = min(center_y + y2shift, img_h)
 
     # Readjust boundaries to be square again if boundary correction occurred.
     new_size = min(x2 - x1, y2 - y1)
-    if new_size < size:
+    if new_size < zoomout_size:
+        print("collision")
         center_x = int((x1 + x2) / 2)
         center_y = int((y1 + y2) / 2)
         shift = int(new_size / 2)
         # No boundary correction is necessary since we are shrinking.
-        x1 = max(center_x - shift, 0)
-        x2 = min(center_x + shift, img_w)
-        y1 = max(center_y - shift, 0)
-        y2 = min(center_y + shift, img_h)
+        x1 = center_x - shift
+        x2 = center_x + shift
+        y1 = center_y - shift
+        y2 = center_y + shift
 
     # Crop and scale image.
     cropped = img[y1:y2, x1:x2]
@@ -153,12 +158,11 @@ def get_orig_sequences(data_dir, comp='c0'):
     seqs.sort()
     return seqs
 
-def main(data_dir, conv_fn):
+def main(data_dir):
     """Extracts faces from FaceForensics++ dataset.
 
     Args:
         data_dir: Base directory of the FaceForensics++ dataset.
-        conv_fn: Location of conversion JSON file.
     Returns:
         The number of faces extracted and written to disk.
     """
@@ -166,12 +170,9 @@ def main(data_dir, conv_fn):
     extract_count = 0
 
     try:
-        # Validate arguments. Exit if invalid.
+        # Validate argument.  Exit if invalid.
         if not os.path.isdir(data_dir):
             print('"{}" is not a directory'.format(data_dir), file=stderr)
-            exit(1)
-        if not os.path.isfile(conv_fn):
-            print('"{}" is not a file'.format(conv_fn), file=stderr)
             exit(1)
 
         # Create directory for output images, if it does not already exist.
@@ -219,7 +220,7 @@ if __name__ == '__main__':
                             help='Base directory for FaceForensics++ data')
         args = parser.parse_args()
 
-        main(args.data_dir[0], args.conv_fn[0])
+        main(args.data_dir[0])
 
     except KeyboardInterrupt:
         pass
