@@ -10,44 +10,28 @@ import cv2
 import face_recognition
 import json
 import os
-from sys import exit, stderr
-from time import sleep  # DEBUG
 
-ZOOMOUT_FACTOR = 1.7
+from glob import glob
+from sys import exit, stderr
+
+COMPRESSION_LEVEL = 'c0'
+ZOOMOUT_FACTOR = 1.8
 CROP_SIZE = 256
 
-class FFVideoSeqID:
-    """Identifying information for an unprocessed video sequence."""
+class FFVideoSeq:
+    """Represents a video sequence.
 
-    def __init__(self, seq_id, frames_id, vid_id, data_dir):
+    Attributes:
+        seq_id: String identifier for the video.
+        path: Path to video file.
+    """
+
+    def __init__(self, seq_id, path):
         self.seq_id = seq_id
-        self.frames_id = frames_id
-        self.vid_id = vid_id
-        self.orig_base = os.path.abspath('{}/downloaded_videos/{}'.format(
-            data_dir, vid_id))
+        self.path = path
 
-    def get_frames(self):
-        """
-        Get the range of frames this video sequence takes from the
-        original video.
-
-        Returns:
-            [first_frame, last_frame], both inclusive.
-        """
-        # Read JSON file containing frame information.
-        frame_fn = '{}/extracted_sequences/{}.json'.format(
-            self.orig_base, self.frames_id)
-        with open(frame_fn, 'r') as f:
-            data = json.load(f)
-            first_frame = data['first frame']
-            last_frame = data['last frame']
-            # TODO: Check for `None`s.
-
-        return [first_frame, last_frame]
-
-    def get_video_path(self):
-        """Gets the path for the video associated with this sequence."""
-        return '{}/{}.mp4'.format(self.orig_base, self.vid_id)
+    def __lt__(self, other):
+        return self.seq_id < other.seq_id
 
 face_size = lambda tp, rt, bt, lt: (bt - tp) * (rt - lt)
 
@@ -105,24 +89,17 @@ def extract_face(seq):
     """Extracts a single face image from a video sequence.
 
     Arguments:
-        seq: FFVideoSeqID representing video sequence.
+        seq: FFVideoSeq representing video sequence.
         output_fn: Path to write image to.
 
     Returns:
         A 256x256 image of a face on success. None on failure.
     """
-    first_frame, last_frame = seq.get_frames()
-
     # Open video for reading.
-    video_path = seq.get_video_path()
-    cap = cv2.VideoCapture(video_path)
+    cap = cv2.VideoCapture(seq.path)
 
-    # Jump to first frame in our range.
-    cap.set(cv2.CAP_PROP_POS_FRAMES, first_frame)
-
-    # Keep looking for a face within the frame range until we find one or
-    # reach the last frame.
-    for i in range(first_frame, last_frame + 1):
+    # Keep looking for a face until we find one or reach the last frame.
+    while True:
         # Attempt to find face in the next frame of the video.
         ret, frame = cap.read()
         if not ret:
@@ -148,36 +125,42 @@ def extract_face(seq):
 
             cropped = crop_face(frame, face_locations[largest_i], CROP_SIZE)
 
-            return frame
+            return cropped
 
-def read_conv_file(conv_fn, data_dir):
-    """Reads the contents of the conversion file.
+def get_orig_sequences(data_dir, comp='c0'):
+    """
+    Gets every original video sequence from a given compression level.
 
     Args:
-        conv_fn: Path to conversion JSON file.
-        data_dir: Base directory of FaceForensics++ dataset.
+        data_dir: Base directory of the FaceForensics++ dataset.
+        comp: Compression level ('c0', 'c23', 'c40')
     Returns:
-        List of `FFVideoSeqID`s in ascending ordered of ID number.
+        List of sequences in ascending order by ID.
     """
+    # TODO: Check compression type and raise error if it is invalid.
+
+    # Get all video file paths.
+    seq_dir = '{}/original_sequences/{}/videos'.format(data_dir, comp)
+    paths = glob('{}/*.mp4'.format(seq_dir))
+
+    # Create sequence objects for each video file.
     seqs = []
-    with open(conv_fn, 'r') as f:
-        data = json.load(f)
-        for seq_id, seq_info in data.items():
-            seq_id = int(seq_id)
-            tokens = seq_info.split(' ')
-            vid_id = tokens[0]
-            frames_id = tokens[1]
-            seqs.append(FFVideoSeqID(seq_id, frames_id, vid_id, data_dir))
+    for p in paths:
+        abs_path = os.path.abspath(p)
+        seq_id, _ = os.path.splitext(os.path.basename(abs_path))
+        seq = FFVideoSeq(seq_id, abs_path)
+        seqs.append(seq)
+    seqs.sort()
     return seqs
 
 def main(data_dir, conv_fn):
     """Extracts faces from FaceForensics++ dataset.
 
     Args:
-        data_dir: Base directory of FaceForensics++ dataset.
+        data_dir: Base directory of the FaceForensics++ dataset.
         conv_fn: Location of conversion JSON file.
     Returns:
-       The number of faces extracted and written to disk.
+        The number of faces extracted and written to disk.
     """
 
     extract_count = 0
@@ -192,12 +175,13 @@ def main(data_dir, conv_fn):
             exit(1)
 
         # Create directory for output images, if it does not already exist.
-        output_dir = '{}/original_sequences_faces/images'.format(data_dir)
+        output_dir = '{}/original_sequences_faces/{}/images'.format(
+            data_dir, COMPRESSION_LEVEL)
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
         print("Extracting faces...")
-        seqs = read_conv_file(conv_fn, data_dir)
+        seqs = get_orig_sequences(data_dir, COMPRESSION_LEVEL)
         for s in seqs:
             output_fn = '{}/{}.png'.format(output_dir, s.seq_id)
             if os.path.exists(output_fn):
@@ -229,16 +213,13 @@ def main(data_dir, conv_fn):
 if __name__ == '__main__':
     try:
         parser = argparse.ArgumentParser(
-            description='Extracts faces from each original downloaded video')
+            description='Extracts faces from each original videos')
         parser.add_argument('data_dir', metavar='dataset_dir',
                             type=str, nargs=1,
                             help='Base directory for FaceForensics++ data')
-        parser.add_argument('conv_fn', metavar='conversion_file',
-                            type=str, nargs=1,
-                            help='JSON conversion dictionary')
         args = parser.parse_args()
 
         main(args.data_dir[0], args.conv_fn[0])
 
     except KeyboardInterrupt:
-        print('Program terminated prematurely')
+        pass
