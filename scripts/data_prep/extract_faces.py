@@ -16,7 +16,7 @@ from glob import glob
 from sys import exit, stderr
 
 COMPRESSION_LEVEL = 'c0'  # c0, c23, c40
-ZOOMOUT_FACTOR = 1.8  # [1, ...]
+ZOOMOUT_FACTOR = 1.6  # [1, ...]
 CROP_SIZE = 256
 
 def extract_face(seq):

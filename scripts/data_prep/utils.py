@@ -1,6 +1,6 @@
 import cv2
 
-ZOOMOUT_Y_BIAS = 0.7  # [0, 1]
+ZOOMOUT_Y_BIAS = 0.5  # [0, 1]
 
 class FFVideoSeq:
     """Represents a video sequence.
