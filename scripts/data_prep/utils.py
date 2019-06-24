@@ -127,6 +127,34 @@ def get_orig_sequences(data_dir, comp='c0'):
     seqs.sort()
     return seqs
 
+def get_seq_combos(video_dir, comp='c0'):
+    """
+    Gets every combination of video sequences used in a directory.
+
+    Args:
+        videos_dir: Directory containing combined videos,
+            e.g. '.../manipulated_sequences/Face2Face/c0'
+
+    Returns:
+        Collection of tuples in the format (driving_video_id, source_video_id),
+        listed in ascending order of driving_video_id.
+    """
+
+    # Get all video file paths.
+    paths = glob('{}/*.mp4'.format(video_dir))
+
+    # Get driving and source video IDs from each file name.
+    pairs = []
+    for p in paths:
+        abs_path = os.path.abspath(p)
+        name, _ = os.path.splitext(os.path.basename(abs_path))
+        driving, source = name.split('_')
+        pairs.append((driving, source))
+
+    # Sort tuples by driving_video_id.
+    pairs.sort()
+    return pairs
+
 def extract_image(seq):
     """
     Extracts a single frame from a video sequence.
