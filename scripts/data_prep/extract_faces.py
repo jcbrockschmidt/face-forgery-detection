@@ -79,16 +79,18 @@ def main(data_dir):
 
             print('Extracting face for sequence {}...'.format(s.seq_id))
             face_img = extract_face(s)
-
-            # Write face image to disk.
-            try:
-                cv2.imwrite(output_fn, face_img)
-                extract_count += 1
-            except KeyboardInterrupt as e:
-                # Safely handle premature termination.  Remove unfinished file.
-                if os.exists(output_fn):
-                    os.remove(output_fn)
-                raise e
+            if face_img is None:
+                print("    No face found")
+            else:
+                # Write face image to disk.
+                try:
+                    cv2.imwrite(output_fn, face_img)
+                    extract_count += 1
+                except KeyboardInterrupt as e:
+                    # Safely handle premature termination.  Remove unfinished file.
+                    if os.exists(output_fn):
+                        os.remove(output_fn)
+                    raise e
     except KeyboardInterrupt:
         print('Program terminated prematurely')
     finally:
