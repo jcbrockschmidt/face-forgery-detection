@@ -21,9 +21,6 @@ def main(data_dir):
 
     Args:
         data_dir: Base directory of the FaceForensics++ dataset.
-
-    Returns:
-        The number of images extracted and written to disk.
     """
 
     extract_count = 0
