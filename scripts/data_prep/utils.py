@@ -1,9 +1,14 @@
 import cv2
+import face_recognition
+import os
+
+from glob import glob
 
 ZOOMOUT_Y_BIAS = 0.5  # [0, 1]
 
 class FFVideoSeq:
-    """Represents a video sequence.
+    """
+    Represents a video sequence.
 
     Attributes:
         seq_id: String identifier for the video.
@@ -18,7 +23,8 @@ class FFVideoSeq:
         return self.seq_id < other.seq_id
 
 def crop_face(img, location, scale_size=256, zoomout=1):
-    """Crops a square area around a face.
+    """
+    Crops a square area around a face.
 
     Args:
         img: Image to crop.
@@ -73,11 +79,13 @@ def crop_face(img, location, scale_size=256, zoomout=1):
 face_size = lambda tp, rt, bt, lt: (bt - tp) * (rt - lt)
 
 def get_largest_face(locations):
-    """Get the largest face region from a collection of face locations.
+    """
+    Get the largest face region from a collection of face locations.
 
     Args:
         locations: Locations of faces, as returned by
             face_recognition.face_locations().
+
     Returns:
         Face location with largest area.
     """
@@ -91,3 +99,65 @@ def get_largest_face(locations):
             largest_size = cur_size
 
     return locations[largest_i]
+
+def get_orig_sequences(data_dir, comp='c0'):
+    """
+    Gets every original video sequence from a given compression level.
+
+    Args:
+        data_dir: Base directory of the FaceForensics++ dataset.
+        comp: Compression level ('c0', 'c23', 'c40')
+
+    Returns:
+        List of sequences in ascending order by ID.
+    """
+    # TODO: Check compression type and raise error if it is invalid.
+
+    # Get all video file paths.
+    seq_dir = '{}/original_sequences/{}/videos'.format(data_dir, comp)
+    paths = glob('{}/*.mp4'.format(seq_dir))
+
+    # Create sequence objects for each video file.
+    seqs = []
+    for p in paths:
+        abs_path = os.path.abspath(p)
+        seq_id, _ = os.path.splitext(os.path.basename(abs_path))
+        seq = FFVideoSeq(seq_id, abs_path)
+        seqs.append(seq)
+    seqs.sort()
+    return seqs
+
+def extract_image(seq):
+    """
+    Extracts a single frame from a video sequence.
+    Ensures the frame contains a face.
+
+    Args:
+        seq: FFVideoSeq representing video sequence.
+        output_fn: Path to write image to.
+
+    Returns:
+        (image, locations) on success, where locations are is a collection of
+        face locations as returned by face_recognition.face_locations().
+        None on failure.
+    """
+    # Open video for reading.
+    cap = cv2.VideoCapture(seq.path)
+
+    # Keep looking for a face until we find one or reach the last frame.
+    while True:
+        # Attempt to find face in the next frame of the video.
+        ret, frame = cap.read()
+        if not ret:
+            return None
+
+        # Convert image from BGR to RGB.
+        rgb_frame = frame[:, :, ::-1]
+
+        face_locations = face_recognition.face_locations(rgb_frame, model='hog')
+        if len(face_locations) == 0:
+            # No face found.  Continue to next frame.
+            continue
+        else:
+            # We found a frame with a face.
+            return frame, face_locations
