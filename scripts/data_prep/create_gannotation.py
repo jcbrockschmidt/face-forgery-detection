@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""TODO"""
+"""Generates videos with GANnotation for the FaceForensics++ dataset."""
 
 from utils import get_seq_combos
 
