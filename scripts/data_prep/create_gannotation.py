@@ -7,15 +7,18 @@ from utils import get_seq_combos
 import argparse
 import cv2
 import dlib
+import GANnotation.GANnotation as GANnotation
 import GANnotation.utils as gann_utils
 import importlib.util
 import numpy as np
 import os
 import sys
+import torch
 
 from sys import stderr
 
 COMPRESSION_LEVEL = 'c0'  # c0, c23, c40
+FPS = 30
 
 face_detector = dlib.get_frontal_face_detector()
 face_predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
@@ -61,14 +64,46 @@ def compute_video_encoding(video):
 
 get_encoding_path = lambda enc_dir, driver_id: '{}/{}.txt'.format(enc_dir, driver_id)
 
-def main(data_dir, gann_dir):
+def get_gann_cropped_face(image):
+    """
+    Gets a cropped image of a face to the specifications of GANnotation.
+
+    Args:
+        image: BGR image as a np.ndarray.
+
+    Returns:
+        Cropped image of a face as a torch.FloatTensor.
+    """
+    # Convert image to RGB.
+    rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+    # Find landmarks/points in frame.
+    gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+    rects = face_detector(gray, 1)
+    if (len(rects) == 0):
+        return None  # No face found.
+    landmarks = face_predictor(gray, rects[0])
+
+    # Convert landmarks to a numpy array.
+    # TODO: Make this a helper function.
+    points = []
+    for i in range(0, landmarks.num_parts):
+        if i == 60 or i == 64:
+            continue
+        point = landmarks.part(i)
+        points.append([point.x, point.y])
+    points = np.array(points)
+
+    cropped, _, _ = gann_utils.process_image(rgb, points)
+    return cropped
+
+def main(data_dir):
     """
     Create videos with GANnotation using the same driving video and source video combinations
     as with Face2Face.
 
     Args:
         data_dir: Base directory of the FaceForensics++ dataset.
-        gann_dir: Path to local GANnotation repository/installation.
     """
 
     face2face_dir = '{}/manipulated_sequences/Face2Face/c0/videos'.format(data_dir)
@@ -80,8 +115,10 @@ def main(data_dir, gann_dir):
     pairs = get_seq_combos(face2face_dir)
 
     # Compute all video encodings and save them to disk.
-    # We precompute these because they take roughly 10 times as long to compute as the
-    # reenactments, and we may want to recompute the reenactments with different images later.
+    # We precompute these because they take roughly 10 times as long to compute
+    # as the reenactments, and we may want to recompute the reenactments with
+    # different images later.
+    print('Computing video encodings...')
     if not os.path.exists(output_enc_dir):
         os.makedirs(output_enc_dir)
     enc_count = 0
@@ -104,7 +141,6 @@ def main(data_dir, gann_dir):
             raise e
         enc_count += 1
 
-    print()
     if enc_count == 0:
         print('No encodings were calculated')
     else:
@@ -112,6 +148,10 @@ def main(data_dir, gann_dir):
 
     print()
     print('Computing reenactments...')
+
+    # Load pre-trained model.
+    my_gann = GANnotation.GANnotation(path_to_model='myGEN.pth')
+
     image_dir = '{}/original_sequences_images/{}/images'.format(data_dir, COMPRESSION_LEVEL)
     if not os.path.exists(output_vid_dir):
         os.makedirs(output_vid_dir)
@@ -137,32 +177,50 @@ def main(data_dir, gann_dir):
                   file=stderr)
             continue
 
-        # TODO: Compute reenactments.
+        points = np.loadtxt(encoding_path).transpose().reshape(66,2,-1)
 
-    print()
+        # Load and transform it for inputting.
+        image = cv2.imread(image_path)
+        cropped = get_gann_cropped_face(image)
+
+        # Compute reenactment.
+        frames, _ = my_gann.reenactment(cropped, points)
+
+        output_path = os.path.abspath(output_path)
+        print('Writing video to "{}"'.format(output_path))
+        try:
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            out = cv2.VideoWriter(output_path, fourcc, FPS, (128,128))
+            for frame in frames:
+                out.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+            out.release()
+        except KeyboardInterrupt as e:
+            # Safely handle premature termination.
+            # Remove unfinished file.
+            if os.exists(output_path):
+                os.remove(output_path)
+            raise e
+        reenact_count += 1
+
     if reenact_count == 0:
         print('No reenactments were created')
     else:
         print('{} reenactments created'.format(reenact_count))
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description='Extracts faces from each original videos')
-    parser.add_argument('data_dir', type=str, nargs=1,
-                        help='Base directory for FaceForensics++ data')
-    parser.add_argument('gann_dir', metavar='GANnotation_dir',
-                        type=str, nargs=1,
-                        help='Base directory for GANnotation')
-    args = parser.parse_args()
+    try:
+        parser = argparse.ArgumentParser(
+            description='Extracts faces from each original videos')
+        parser.add_argument('data_dir', type=str, nargs=1,
+                            help='Base directory for FaceForensics++ data')
+        args = parser.parse_args()
 
-    # Validate arguments.
-    data_dir = args.data_dir[0]
-    gann_dir = args.gann_dir[0]
-    if not os.path.isdir(data_dir):
-        print('"{}" is not a directory'.format(data_dir), file=stderr)
-        exit(2)
-    if not os.path.isdir(gann_dir):
-        print('"{}" is not a directory'.format(gann_dir), file=stderr)
-        exit(2)
+        # Validate arguments.
+        data_dir = args.data_dir[0]
+        if not os.path.isdir(data_dir):
+            print('"{}" is not a directory'.format(data_dir), file=stderr)
+            exit(2)
 
-    main(data_dir, gann_dir)
+        main(data_dir)
+    except KeyboardInterrupt:
+        print('Program terminated prematurely')
