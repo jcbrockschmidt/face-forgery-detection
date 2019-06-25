@@ -189,3 +189,19 @@ def extract_image(seq):
         else:
             # We found a frame with a face.
             return frame, face_locations
+
+def gann_img_to_cv2_img(image):
+    """
+    Converts an image in the format used by GANnotation to the format
+    used by OpenCV 2.
+
+    Args:
+        image: Image as a torch.FloatTensor.
+
+    Returns:
+        BGR image as a numpy.ndarray.
+    """
+    cv2_img = image.numpy().swapaxes(0,1).swapaxes(1,2)
+    cv2_img = (255 * cv2_img).astype('uint8')
+    cv2_img = cv2.cvtColor(cv2_img, cv2.COLOR_RGB2BGR)
+    return cv2_img
