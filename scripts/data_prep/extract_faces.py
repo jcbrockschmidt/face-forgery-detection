@@ -18,7 +18,6 @@ from sys import stderr
 
 COMPRESSION_LEVEL = 'c0'  # c0, c23, c40
 ZOOMOUT_FACTOR = 1.6  # [1, ...]
-CROP_SIZE = 256
 
 def extract_face(seq):
     """
@@ -26,10 +25,9 @@ def extract_face(seq):
 
     Args:
         seq: FFVideoSeq representing video sequence.
-        output_fn: Path to write image to.
 
     Returns:
-        A 256x256 image of a face on success. None on failure.
+        An image of a face on success.  None on failure.
     """
     img, locations = extract_image(seq)
     if img is None:
@@ -39,7 +37,7 @@ def extract_face(seq):
         # We found a frame with a face.
         # If there are multiple faces, choose the largest.
         loc = get_largest_face(locations)
-        cropped = crop_face(img, loc, CROP_SIZE, ZOOMOUT_FACTOR)
+        cropped = crop_face(img, loc, ZOOMOUT_FACTOR)
         return cropped
 
 def main(data_dir):
