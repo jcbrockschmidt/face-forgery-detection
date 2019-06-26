@@ -212,7 +212,7 @@ def write_video(frames, fps, dim, output_path):
     Writes frames to disk as an MP4 video.
 
     Args:
-        frames: An ordered collection of BRG images as numpy.ndarrays.
+        frames: An ordered collection of BGR images as numpy.ndarrays.
         fps: FPS of the new video.
         dim: Dimensions of the new videos.
         output_path: Path to write video to.
