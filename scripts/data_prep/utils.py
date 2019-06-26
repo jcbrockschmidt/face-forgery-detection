@@ -22,7 +22,7 @@ class FFVideoSeq:
     def __lt__(self, other):
         return self.seq_id < other.seq_id
 
-def crop_face(img, location, scale_size=256, zoomout=1):
+def crop_face(img, location, zoomout=1, scale_size=-1):
     """
     Crops a square area around a face.
 
@@ -30,9 +30,10 @@ def crop_face(img, location, scale_size=256, zoomout=1):
         img: Image to crop.
         location: Location of the face, as returned by
             face_recognition.face_locations().
-        scale_size: Width and height of cropped image.  Scaling will occur.
-        zoomout: Percentage of the cropped area to include.
-            Can (and probably should) be greater than 1.
+        zoomout: Percentage to scale region around face by.
+            Should be greater than or equal to 1.
+        scale_size: Width and height of cropped image.
+            -1 to use original width and height of cropped region.
     Returns:
         Cropped image containing the face.
     """
@@ -71,10 +72,11 @@ def crop_face(img, location, scale_size=256, zoomout=1):
         y2 = center_y + shift
 
     # Crop and scale image.
-    cropped = img[y1:y2, x1:x2]
-    scaled = cv2.resize(cropped, (scale_size, scale_size))
+    result = img[y1:y2, x1:x2]
+    if scale_size > 0:
+        result = cv2.resize(result, (scale_size, scale_size))
 
-    return scaled
+    return result
 
 face_size = lambda tp, rt, bt, lt: (bt - tp) * (rt - lt)
 
@@ -162,7 +164,6 @@ def extract_image(seq):
 
     Args:
         seq: FFVideoSeq representing video sequence.
-        output_fn: Path to write image to.
 
     Returns:
         (image, locations) on success, where locations are is a collection of
@@ -205,3 +206,19 @@ def gann_img_to_cv2_img(image):
     cv2_img = (255 * cv2_img).astype('uint8')
     cv2_img = cv2.cvtColor(cv2_img, cv2.COLOR_RGB2BGR)
     return cv2_img
+
+def write_video(frames, fps, dim, output_path):
+    """
+    Writes frames to disk as an MP4 video.
+
+    Args:
+        frames: An ordered collection of BRG images as numpy.ndarrays.
+        fps: FPS of the new video.
+        dim: Dimensions of the new videos.
+        output_path: Path to write video to.
+    """
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(output_path, fourcc, fps, dim)
+    for frame in frames:
+        out.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+    out.release()
