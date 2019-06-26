@@ -2,14 +2,13 @@
 
 """Generates videos with GANnotation for the FaceForensics++ dataset."""
 
-from utils import get_seq_combos
+from utils import get_seq_combos, write_video
 
 import argparse
 import cv2
 import dlib
 import GANnotation.GANnotation as GANnotation
 import GANnotation.utils as gann_utils
-import importlib.util
 import numpy as np
 import os
 import sys
@@ -20,8 +19,10 @@ from sys import stderr
 COMPRESSION_LEVEL = 'c0'  # c0, c23, c40
 FPS = 30
 
+dirname = os.path.dirname(__file__)
 face_detector = dlib.get_frontal_face_detector()
-face_predictor = dlib.shape_predictor('shape_predictor_68_face_landmarks.dat')
+face_predictor = dlib.shape_predictor(os.path.join(
+    dirname, 'shape_predictor_68_face_landmarks.dat'))
 
 def compute_video_encoding(video):
     """
@@ -99,8 +100,8 @@ def get_gann_cropped_face(image):
 
 def main(data_dir):
     """
-    Create videos with GANnotation using the same driving video and source video combinations
-    as with Face2Face.
+    Generates videos with GANnotation using the same driving video and source
+    video combinations used with Face2Face.
 
     Args:
         data_dir: Base directory of the FaceForensics++ dataset.
@@ -150,7 +151,8 @@ def main(data_dir):
     print('Computing reenactments...')
 
     # Load pre-trained model.
-    my_gann = GANnotation.GANnotation(path_to_model='myGEN.pth')
+    gann_path = os.path.join(dirname, 'myGEN.pth')
+    my_gann = GANnotation.GANnotation(path_to_model=gann_path)
 
     image_dir = '{}/original_sequences_images/{}/images'.format(data_dir, COMPRESSION_LEVEL)
     if not os.path.exists(output_vid_dir):
@@ -177,9 +179,9 @@ def main(data_dir):
                   file=stderr)
             continue
 
-        points = np.loadtxt(encoding_path).transpose().reshape(66,2,-1)
+        points = np.loadtxt(encoding_path).transpose().reshape(66, 2, -1)
 
-        # Load and transform it for inputting.
+        # Load and transform image for inputting.
         image = cv2.imread(image_path)
         cropped = get_gann_cropped_face(image)
 
@@ -189,11 +191,7 @@ def main(data_dir):
         output_path = os.path.abspath(output_path)
         print('Writing video to "{}"'.format(output_path))
         try:
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            out = cv2.VideoWriter(output_path, fourcc, FPS, (128,128))
-            for frame in frames:
-                out.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-            out.release()
+            write_video(frames, FPS, (128, 128), output_path)
         except KeyboardInterrupt as e:
             # Safely handle premature termination.
             # Remove unfinished file.
@@ -210,9 +208,9 @@ def main(data_dir):
 if __name__ == '__main__':
     try:
         parser = argparse.ArgumentParser(
-            description='Extracts faces from each original videos')
+            description='Generates videos with GANnotation')
         parser.add_argument('data_dir', type=str, nargs=1,
-                            help='Base directory for FaceForensics++ data')
+                            help='Base directory for FaceForensics++ dataset')
         args = parser.parse_args()
 
         # Validate arguments.
