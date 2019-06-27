@@ -153,7 +153,15 @@ def reenact(model, driver_vid, source_img):
     result_frames = []
     for i in range(0, total_frames, BATCH_SIZE):
         # Transform our input.
-        driver_vid_trans = cv2_vid_to_x2face_input(driver_vid, i, BATCH_SIZE, crop=True).cuda()
+        driver_vid_trans = cv2_vid_to_x2face_input(
+            driver_vid, i, BATCH_SIZE, crop=True)
+        if driver_vid_trans is None:
+            # No faces found in this batch of frames.
+            # Stop generating to avoid a discontinuous video.
+            print('Lost face.  ' \
+                  'Stopping reenactment early on frame {}'.format(i))
+            break
+        driver_vid_trans = driver_vid_trans.cuda()
         num_frames = driver_vid_trans.shape[0]
         source_img_trans = cv2_img_to_x2face_img(source_img)
         source_img_trans = source_img_trans.unsqueeze(0).repeat(num_frames, 1, 1, 1)
