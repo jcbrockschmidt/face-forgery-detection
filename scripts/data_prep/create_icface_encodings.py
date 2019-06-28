@@ -4,7 +4,6 @@
 
 import argparse
 import cv2
-from icface.test_code_released.util.util import crop_face
 import os
 import shutil
 import subprocess
