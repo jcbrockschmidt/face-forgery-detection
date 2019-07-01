@@ -150,10 +150,10 @@ def get_seq_combos(video_dir, comp='c0'):
     for p in paths:
         abs_path = os.path.abspath(p)
         name, _ = os.path.splitext(os.path.basename(abs_path))
-        driving, source = name.split('_')
-        pairs.append((driving, source))
+        source, driving = name.split('_')
+        pairs.append((source, driving))
 
-    # Sort tuples by driving_video_id.
+    # Sort tuples by driving ID.
     pairs.sort()
     return pairs
 

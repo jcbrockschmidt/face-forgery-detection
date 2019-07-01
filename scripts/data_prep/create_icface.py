@@ -171,9 +171,9 @@ def main(data_dir):
 
     pairs = get_seq_combos(face2face_dir)
     reenact_count = 0
-    for driver_id, source_id in pairs:
+    for source_id, driver_id in pairs:
         output_path = os.path.join(
-            output_dir, '{}_{}.mp4'.format(driver_id, source_id))
+            output_dir, '{}_{}.mp4'.format(source_id, driver_id))
         if os.path.exists(output_path):
             # Do not recreate a video if it already exists.
             # If the user wants to recreated a video

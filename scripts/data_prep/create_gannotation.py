@@ -22,7 +22,7 @@ FPS = 30
 dirname = os.path.dirname(__file__)
 face_detector = dlib.get_frontal_face_detector()
 face_predictor = dlib.shape_predictor(os.path.join(
-    dirname, 'shape_predictor_68_face_landmarks.dat'))
+    dirname, 'models/shape_predictor_68_face_landmarks.dat'))
 
 def compute_video_encoding(video):
     """
@@ -123,12 +123,12 @@ def main(data_dir):
     if not os.path.exists(output_enc_dir):
         os.makedirs(output_enc_dir)
     enc_count = 0
-    for driver_id, _ in pairs:
-        encoding_path = get_encoding_path(output_enc_dir, driver_id)
+    for source_id, _ in pairs:
+        encoding_path = get_encoding_path(output_enc_dir, source_id)
         if os.path.exists(encoding_path):
             continue  # Encoding already calculated for this video sequence.
-        print('Computing encoding for sequence {}...'.format(driver_id))
-        video_path = '{}/{}.mp4'.format(orig_dir, driver_id)
+        print('Computing encoding for sequence {}...'.format(source_id))
+        video_path = '{}/{}.mp4'.format(orig_dir, source_id)
         cap = cv2.VideoCapture(video_path)
         points = compute_video_encoding(cap)
         cap.release()
@@ -151,15 +151,15 @@ def main(data_dir):
     print('Computing reenactments...')
 
     # Load pre-trained model.
-    gann_path = os.path.join(dirname, 'myGEN.pth')
+    gann_path = os.path.join(dirname, 'models/myGEN.pth')
     my_gann = GANnotation.GANnotation(path_to_model=gann_path)
 
     image_dir = '{}/original_sequences_images/{}/images'.format(data_dir, COMPRESSION_LEVEL)
     if not os.path.exists(output_vid_dir):
         os.makedirs(output_vid_dir)
     reenact_count = 0
-    for driver_id, source_id in pairs:
-        output_path = '{}/{}_{}.mp4'.format(output_vid_dir, driver_id, source_id)
+    for source_id, driver_id in pairs:
+        output_path = '{}/{}_{}.mp4'.format(output_vid_dir, source_id, driver_id)
         if os.path.exists(output_path):
             # Do not recreate a video if it already exists.
             # If the user wants to recreated a video
