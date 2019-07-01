@@ -122,46 +122,50 @@ def extract_images_worker(video_path, output_dir, overwrite=False):
     Returns:
         Number of images written to disk.
     """
-    cap = cv2.VideoCapture(video_path)
-    frame_cnt = cap.get(cv2.CAP_PROP_FRAME_COUNT)
-    name, _ = os.path.splitext(os.path.basename(video_path))
-    img_count = 0
-    for i in range(0, int(frame_cnt // ELAPSE) - 1):
-        output_path = os.path.join(output_dir, '{}-{}.png'.format(name, i))
-        if not overwrite and os.path.exists(output_path):
-            # Image already exists and will not be overwritten.
-            continue
+    try:
+        cap = cv2.VideoCapture(video_path)
+        frame_cnt = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        name, _ = os.path.splitext(os.path.basename(video_path))
+        img_count = 0
+        for i in range(0, int(frame_cnt // ELAPSE) - 1):
+            output_path = os.path.join(output_dir, '{}-{}.png'.format(name, i))
+            if not overwrite and os.path.exists(output_path):
+                # Image already exists and will not be overwritten.
+                continue
 
-        # Jump to next frame.
-        fi = (i + 1) * ELAPSE
-        cap.set(cv2.CAP_PROP_POS_FRAMES, fi)
-        ret, frame = cap.read()
-        if not ret:
-            break
+            # Jump to next frame.
+            fi = (i + 1) * ELAPSE
+            cap.set(cv2.CAP_PROP_POS_FRAMES, fi)
+            ret, frame = cap.read()
+            if not ret:
+                break
 
-        # Crop image around a face.
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        face_locations = face_recognition.face_locations(gray, model='hog')
-        if len(face_locations) == 0:
-            # No face found.  Continue to next frame.
-            continue
-        loc = face_locations[0]
-        cropped = crop_face(frame, loc, zoomout=ZOOMOUT)
+            # Crop image around a face.
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            face_locations = face_recognition.face_locations(gray, model='hog')
+            if len(face_locations) == 0:
+                # No face found.  Continue to next frame.
+                continue
+            loc = face_locations[0]
+            cropped = crop_face(frame, loc, zoomout=ZOOMOUT)
 
-        # Write image to disk.
-        try:
-            if not cv2.imwrite(output_path, cropped):
-                print('ERROR: Failed to write to "{}"'.format(output_path),
-                      file=stderr)
-        except Exception as e:
-            if os.path.exists(output_path):
-                # Delete partially written file.
-                os.remove(output_path)
-            raise e
-        img_count += 1
+            # Write image to disk.
+            try:
+                if not cv2.imwrite(output_path, cropped):
+                    print('ERROR: Failed to write to "{}"'.format(output_path),
+                          file=stderr)
+            except Exception as e:
+                if os.path.exists(output_path):
+                    # Delete partially written file.
+                    os.remove(output_path)
+                raise e
+            img_count += 1
 
-    cap.release()
-    return img_count
+        cap.release()
+        return img_count
+
+    except KeyboardInterrupt:
+        pass
 
 def extract_images(video_paths, output_dir, overwrite=False):
     """
