@@ -1,8 +1,8 @@
 import cv2
 import face_recognition
-import os
-
 from glob import glob
+import numpy as np
+import os
 
 ZOOMOUT_Y_BIAS = 0.5  # [0, 1]
 
@@ -28,8 +28,8 @@ def crop_face(img, location, zoomout=1, scale_size=-1):
 
     Args:
         img: Image to crop.
-        location: Location of the face, as returned by
-            face_recognition.face_locations().
+        location: Location of the face as a tuple (top, right, bottom, left),
+            as returned by face_recognition.face_locations().
         zoomout: Percentage to scale region around face by.
             Should be greater than or equal to 1.
         scale_size: Width and height of cropped image.
@@ -222,3 +222,25 @@ def write_video(frames, fps, dim, output_path):
     for frame in frames:
         out.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
     out.release()
+
+def rect_from_landmarks(landmarks):
+    """
+    Get a rectangle around a face from landmarks.  This is more precise than a
+    rectangle from face_recognition.face_locations().
+
+    Args:
+        landmarks: Landmarks returned by face_recognition.face_landmarks().
+
+    Return:
+        A tuple in the form (top, right, bottom, left).
+    """
+    # Ignore the nose bridge and lip.
+    arrays = (
+        np.array(landmarks['chin']),
+        np.array(landmarks['left_eyebrow']),
+        np.array(landmarks['right_eyebrow']),
+        np.array(landmarks['nose_tip']))
+    coords = np.concatenate(arrays, axis=0)
+    left, top = np.amin(coords, axis=0)
+    right, bottom = np.amax(coords, axis=0)
+    return (top, right, bottom, left)

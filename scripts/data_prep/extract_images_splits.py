@@ -28,15 +28,56 @@ import argparse
 import cv2
 import face_recognition
 from multiprocessing.pool import Pool
+import numpy as np
 import os
 from sys import stderr
 
-from utils import crop_face
+from utils import rect_from_landmarks
 from split_utils import get_mani_paths, get_orig_paths, get_splits
 
 # Frames between each image capture.
 ELAPSE = 30
-ZOOMOUT = 1.6
+FOREHEAD_FACTOR = 0.3
+CHIN_FACTOR = 0.1
+
+def crop_face_landmarks(image):
+    """
+    Crops a face around facial landmarks.
+
+    Args:
+        image: Image to crop as a BGR numpy.ndarray.
+        zoomout: Percent to zoomout around face.  Should be 1.0 or greater.
+
+    Returns:
+        A cropped image of a face as a BGR numpy.ndarray on success.
+        None if no face is found of could not get a good crop of the face.
+    """
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    landmarks = face_recognition.face_landmarks(gray, model='large')
+    if len(landmarks) == 0:
+        return None
+
+    # We will assume the first face found is the face we want.
+    top, right, bottom, left = rect_from_landmarks(landmarks[0])
+
+    # Include some of the forehead and below the chin.
+    h, w, _ = image.shape
+    face_h = bottom - top
+    top = max(int(top - face_h * FOREHEAD_FACTOR), 0)
+    bottom = min(int(bottom + face_h * CHIN_FACTOR), h)
+
+    # Make face region square.
+    size = bottom - top
+    center_x = (right + left) / 2
+    right = int(center_x + size / 2)
+    left = int(center_x - size / 2)
+
+    # Check that left and right are within bounds.
+    if left < 0 or right > w:
+        return None
+
+    cropped = image[top:bottom, left:right]
+    return cropped
 
 def extract_images_worker(video_path, output_dir, overwrite=False):
     """
@@ -69,13 +110,10 @@ def extract_images_worker(video_path, output_dir, overwrite=False):
                 break
 
             # Crop image around a face.
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            face_locations = face_recognition.face_locations(gray, model='hog')
-            if len(face_locations) == 0:
+            cropped = crop_face_landmarks(frame)
+            if cropped is None:
                 # No face found.  Continue to next frame.
                 continue
-            loc = face_locations[0]
-            cropped = crop_face(frame, loc, zoomout=ZOOMOUT)
 
             # Write image to disk.
             try:

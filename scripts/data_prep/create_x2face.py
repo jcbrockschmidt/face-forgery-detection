@@ -15,7 +15,7 @@ from sys import stderr
 from X2Face.UnwrapMosaic.UnwrappedFace import UnwrappedFaceWeightedAverage,\
     UnwrappedFaceWeightedAveragePose
 
-from utils import crop_face, get_seq_combos, write_video
+from utils import crop_face, get_seq_combos, rect_from_landmarks, write_video
 
 ZOOMOUT_FACTOR = 1.6
 COMPRESSION_LEVEL = 'c0'
@@ -50,28 +50,6 @@ def cv2_img_to_x2face_img(image):
     pil_img = Image.fromarray(rgb)
     transform = Compose([Scale((256, 256)), ToTensor()])
     return Variable(transform(pil_img))
-
-def rect_from_landmarks(landmarks):
-    """
-    Get a rectangle around a face from landmarks.  This is more precise than a
-    rectangle from face_recognition.face_locations().
-
-    Args:
-        landmarks: Landmarks returned by face_recognition.face_landmarks().
-
-    Return:
-        A tuple in the form (top, right, bottom, left).
-    """
-    # Ignore the nose bridge and lip.
-    arrays = (
-        np.array(landmarks['chin']),
-        np.array(landmarks['left_eyebrow']),
-        np.array(landmarks['right_eyebrow']),
-        np.array(landmarks['nose_tip']))
-    coords = np.concatenate(arrays, axis=0)
-    left, top = np.amin(coords, axis=0)
-    right, bottom = np.amax(coords, axis=0)
-    return (top, right, bottom, left)
 
 def cv2_vid_to_x2face_input(video, frame, frame_cnt, crop=False):
     """
