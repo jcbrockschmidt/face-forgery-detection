@@ -24,6 +24,9 @@ Starting that same model on epoch 50:
 ```
 """
 
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Only show Tensorflow errors.
+
 import argparse
 import csv
 from keras.backend.tensorflow_backend import set_session
@@ -31,10 +34,12 @@ from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
-import os
 from sys import stderr
 
 from MesoNet.classifiers import Meso4
+
+# Silence Tensorflow warnings.
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 EPOCHS = 1000
 BATCH_SIZE = 32
@@ -202,7 +207,7 @@ if __name__ == '__main__':
         parser.add_argument('save_dir', type=str, nargs=1,
                             help='directory to save checkpoints and other data to')
         parser.add_argument('train_class', metavar='class', type=str, nargs=1,
-                            help='class to start on')
+                            help='class other than "real" to train on')
         parser.add_argument('-w', '--weights', type=str, required=False, nargs=1,
                             help='HDF5 weight file to initialize model with')
         parser.add_argument('-e', '--epoch', type=int, required=False, nargs=1,
