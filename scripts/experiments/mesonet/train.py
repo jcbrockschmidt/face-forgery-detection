@@ -36,7 +36,7 @@ import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
 from sys import stderr
 
-from MesoNet.classifiers import Meso4
+from MesoNet.classifiers import Meso1, Meso4, MesoInception4
 
 # Silence Tensorflow warnings.
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
@@ -101,7 +101,7 @@ class CustomCallback(Callback):
         if val_acc > self._best_acc:
             self._best_acc = val_acc
             print('New best found with accuracy {}.  ' \
-                  'Saving weights to "{}"'.format(self.best_path, self._best_acc))
+                  'Saving weights to "{}"'.format(self._best_acc, self.best_path))
             self.model.save_weights(self.best_path)
 
         # Save model weights.
@@ -110,7 +110,13 @@ class CustomCallback(Callback):
             print('Saving weights to "{}"...'.format(check_path))
             self.model.save_weights(check_path)
 
-def main(data_dir, save_dir, train_class, weights_path=None, epoch=1):
+MODEL_MAP = {
+    'mesoinception4': MesoInception4,
+    'meso4': Meso4,
+    'meso1': Meso1
+}
+
+def main(data_dir, save_dir, train_class, mtype='meso4', weights_path=None, epoch=1):
     """
     Trains a Meso4 model.
 
@@ -157,6 +163,12 @@ def main(data_dir, save_dir, train_class, weights_path=None, epoch=1):
               file=stderr)
         exit(2)
 
+    # Make sure model is valid.
+    if not mtype in MODEL_MAP:
+        print('ERROR: "{}" is not a valid model type'.format(mtype),
+              file=stderr)
+        exit(2)
+
     # Create save directory if it does not exist.
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -181,7 +193,7 @@ def main(data_dir, save_dir, train_class, weights_path=None, epoch=1):
         subset='training')
 
     # Create model.
-    model = Meso4()
+    model = MODEL_MAP[mtype]()
     if not weights_path is None:
         model.load(weights_path)
 
@@ -201,13 +213,15 @@ def main(data_dir, save_dir, train_class, weights_path=None, epoch=1):
 if __name__ == '__main__':
     try:
         parser = argparse.ArgumentParser(
-            description='Trains a Meso4 model')
+            description='Trains a MesoNet model')
         parser.add_argument('data_dir', type=str, nargs=1,
                             help='directory containing a "train" and "val" directory')
         parser.add_argument('save_dir', type=str, nargs=1,
                             help='directory to save checkpoints and other data to')
         parser.add_argument('train_class', metavar='class', type=str, nargs=1,
                             help='class other than "real" to train on')
+        parser.add_argument('-m', '--mtype', type=str, required=False, nargs=1,
+                            help='model type, either "meso4", "mesoinception4", or "meso1"')
         parser.add_argument('-w', '--weights', type=str, required=False, nargs=1,
                             help='HDF5 weight file to initialize model with')
         parser.add_argument('-e', '--epoch', type=int, required=False, nargs=1,
@@ -218,14 +232,22 @@ if __name__ == '__main__':
         data_dir = args.data_dir[0]
         save_dir = args.save_dir[0]
         train_class = args.train_class[0].lower()
+
+        if args.mtype is None:
+            mtype = 'meso4'
+        else:
+            mtype = args.mtype[0].lower()
+
         if args.weights is None:
             weights_path = None
         else:
             weights_path = args.weights[0]
+
         if args.epoch is None:
             epoch = 0
         else:
             epoch = args.epoch[0]
+
         if not os.path.isdir(data_dir):
             print('"{}" is not a directory'.format(data_dir), file=stderr)
             exit(2)
@@ -241,7 +263,7 @@ if __name__ == '__main__':
         sess = tf.Session(config=config)
         set_session(sess)
 
-        main(data_dir, save_dir, train_class, weights_path=weights_path, epoch=epoch)
+        main(data_dir, save_dir, train_class, mtype=mtype, weights_path=weights_path, epoch=epoch)
 
     except KeyboardInterrupt:
         print('Program terminated prematurely')
