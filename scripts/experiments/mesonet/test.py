@@ -25,7 +25,7 @@ import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
 from sys import stderr
 
-from MesoNet.classifiers import Meso4
+from MesoNet.classifiers import Meso1, Meso4, MesoInception4
 
 # Silence Tensorflow warnings.
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
@@ -33,7 +33,13 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 BATCH_SIZE = 32
 
 
-def main(data_dir, other_class, weights_path):
+MODEL_MAP = {
+    'mesoinception4': MesoInception4,
+    'meso4': Meso4,
+    'meso1': Meso1
+}
+
+def main(data_dir, other_class, weights_path, mtype):
     """
     Tests a Meso4 model.
 
@@ -55,6 +61,12 @@ def main(data_dir, other_class, weights_path):
               file=stderr)
         exit(2)
 
+    # Make sure model is valid.
+    if not mtype in MODEL_MAP:
+        print('ERROR: "{}" is not a valid model type'.format(mtype),
+              file=stderr)
+        exit(2)
+
     # Create data generators.
     test_data_generator = ImageDataGenerator(rescale=1/255)
     test_generator = test_data_generator.flow_from_directory(
@@ -66,7 +78,7 @@ def main(data_dir, other_class, weights_path):
         subset='training')
 
     # Create model.
-    model = Meso4()
+    model = MODEL_MAP[mtype]()
     model.load(weights_path)
 
     # Test model.
@@ -86,12 +98,15 @@ if __name__ == '__main__':
                             help='class other than "real" to test on')
         parser.add_argument('weights', type=str, nargs=1,
                             help='HDF5 weight file to initialize model with')
+        parser.add_argument('mtype', type=str, nargs=1,
+                            help='model type, either "meso4", "mesoinception4", or "meso1"')
         args = parser.parse_args()
 
         # Validate arguments.
         data_dir = args.data_dir[0]
         other_class = args.other_class[0].lower()
         weights_path = args.weights[0]
+        mtype = args.mtype[0]
         if not os.path.isdir(data_dir):
             print('"{}" is not a directory'.format(data_dir), file=stderr)
             exit(2)
@@ -104,7 +119,7 @@ if __name__ == '__main__':
         sess = tf.Session(config=config)
         set_session(sess)
 
-        main(data_dir, other_class, weights_path)
+        main(data_dir, other_class, weights_path, mtype)
 
     except KeyboardInterrupt:
         print('Program terminated prematurely')
