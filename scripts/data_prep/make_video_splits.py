@@ -11,6 +11,7 @@ The resulting file structure will be:
         |   +---c0
         |   |   +---df
         |   |   +---f2f
+        |   |   +---fs
         |   |   +---gann
         |   |   +---icf
         |   |   +---x2f
@@ -76,6 +77,7 @@ def main(data_dir, output_dir):
     orig_dir = os.path.join(data_dir, 'original_sequences')
     df_dir = os.path.join(data_dir, 'manipulated_sequences/Deepfakes')
     f2f_dir = os.path.join(data_dir, 'manipulated_sequences/Face2Face')
+    fs_dir = os.path.join(data_dir, 'manipulated_sequences/FaceSwap')
     gann_dir = os.path.join(data_dir, 'manipulated_sequences/GANnotation')
     icf_dir = os.path.join(data_dir, 'manipulated_sequences/ICface')
     x2f_dir = os.path.join(data_dir, 'manipulated_sequences/X2Face')
@@ -94,10 +96,11 @@ def main(data_dir, output_dir):
             orig_out_dir = os.path.join(base_dir, 'real')
             df_out_dir = os.path.join(base_dir, 'df')
             f2f_out_dir = os.path.join(base_dir, 'f2f')
+            fs_out_dir = os.path.join(base_dir, 'fs')
             gann_out_dir = os.path.join(base_dir, 'gann')
             icf_out_dir = os.path.join(base_dir, 'icf')
             x2f_out_dir = os.path.join(base_dir, 'x2f')
-            dirs = (orig_out_dir, df_out_dir, f2f_out_dir,
+            dirs = (orig_out_dir, df_out_dir, f2f_out_dir, fs_out_dir,
                     gann_out_dir, icf_out_dir, x2f_out_dir)
             for direct in dirs:
                 if not os.path.exists(direct):
@@ -117,6 +120,11 @@ def main(data_dir, output_dir):
                 print('    Face2Face...')
                 f2f_paths = get_mani_paths(f2f_dir, split, comp)
                 link_count += link_videos(f2f_paths, f2f_out_dir)
+
+            if os.path.isdir(fs_dir):
+                print('    FaceSwap...')
+                fs_paths = get_mani_paths(fs_dir, split, comp)
+                link_count += link_videos(fs_paths, fs_out_dir)
 
             if os.path.isdir(gann_dir):
                 print('    GANnotation...')
@@ -143,7 +151,7 @@ if __name__ == '__main__':
         parser.add_argument('data_dir', type=str, nargs=1,
                             help='directory for FaceForensics++ dataset')
         parser.add_argument('output_dir', type=str, nargs=1,
-                            help='directory to copy video to')
+                            help='directory to copy videos to')
         args = parser.parse_args()
 
         # Validate arguments.
