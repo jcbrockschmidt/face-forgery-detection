@@ -39,25 +39,25 @@ def get_videos(orig_dir, output_dir, overwrite=False):
 
     return output_paths
 
-def compress_worker(video_path, output_path, qp):
+def compress_worker(video_path, output_path, crf):
     """
     Compresses an MP4 with the H.264 codec.
 
     Args:
         video_path: Path to video to compress.
         output_path: Path to write video to.
-        qp: Quantization parameter for compression.
+        crf: Constant rate factor for compression.
     """
     name = os.path.basename(video_path)
     print('Compressing {}...'.format(name))
-    cmd = 'ffmpeg -y -i {} -c:v h264 -qp {} -c:a aac {}'.format(video_path, qp, output_path)
+    cmd = 'ffmpeg -y -i {} -c:v libx264 -crf {} {}'.format(video_path, crf, output_path)
     exit_code = subprocess.call(cmd.split(), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if exit_code != 0:
         print('ERROR: Something went wrong when compressing {}'.format(name),
               file=stderr)
     print('Finished compressing {}'.format(name))
 
-def main(original_dir, output_dir, qp, thread_count=None, overwrite=False):
+def main(original_dir, output_dir, crf, thread_count=None, overwrite=False):
     """
     Compresses every MP4 video in a directory using the H.264 codec.
 
@@ -65,7 +65,7 @@ def main(original_dir, output_dir, qp, thread_count=None, overwrite=False):
         original_dir: Directory containing original videos.
         output_dir: Directory to output new videos to.  Will be created if
             it does not exist.
-        qp: Quantization parameter, i.e. the amount of compressing to perform.
+        crf: Constant rate factor, i.e. the amount of compressing to perform.
             A higher number means higher compression.
         thread_count: Amount of threads to use.  Set to None automatically
             choose a number of threads.
@@ -77,7 +77,7 @@ def main(original_dir, output_dir, qp, thread_count=None, overwrite=False):
     print('Compressing {} videos...'.format(len(videos)))
     pool = Pool(thread_count)
     for video, output in videos:
-        pool.apply_async(compress_worker, (video, output, qp))
+        pool.apply_async(compress_worker, (video, output, crf))
 
     pool.close()
     pool.join()
@@ -92,8 +92,8 @@ if __name__ == '__main__':
                             help='directory containing original videos')
         parser.add_argument('output_videos', type=str, nargs=1,
                             help='directory to output new videos to')
-        parser.add_argument('qp', type=int, nargs=1,
-                            help='quantization parameter. Higher is more compressed')
+        parser.add_argument('crf', type=int, nargs=1,
+                            help='constant rate parametr, higher is more compressed')
         parser.add_argument('-t', '--threads', type=int, required=False, nargs=1,
                             help='number of threads to use.')
         parser.add_argument('-f', '--overwrite',
@@ -106,13 +106,14 @@ if __name__ == '__main__':
             print('"{}" is not a directory'.format(original_videos), file=stderr)
             exit(2)
         output_videos = args.output_videos[0]
-        qp = args.qp[0]
+        crf = args.crf[0]
         if args.threads is None:
             threads = None
         else:
             threads = args.threads[0]
         overwrite = args.overwrite
 
-        main(original_videos, output_videos, qp, thread_count=threads, overwrite=overwrite)
+        main(original_videos, output_videos, crf,
+             thread_count=threads, overwrite=overwrite)
     except KeyboardInterrupt:
         print('Program terminated')
