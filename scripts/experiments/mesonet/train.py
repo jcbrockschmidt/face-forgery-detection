@@ -172,7 +172,7 @@ def main(data_dir, save_dir, other_class, mtype='meso4', weights_path=None, epoc
         os.makedirs(save_dir)
 
     # Create data generators.
-    print('\nLoading training data...')
+    print('\nLoading training data from "{}"...'.format(train_dir))
     train_data_generator = ImageDataGenerator(rescale=1/255)
     train_generator = train_data_generator.flow_from_directory(
         train_dir,
@@ -182,7 +182,7 @@ def main(data_dir, save_dir, other_class, mtype='meso4', weights_path=None, epoc
         class_mode='binary',
         subset='training')
 
-    print('\nLoading validation data...')
+    print('\nLoading validation data from "{}"...'.format(valid_dir))
     valid_data_generator = ImageDataGenerator(rescale=1/255)
     valid_generator = valid_data_generator.flow_from_directory(
         valid_dir,
@@ -200,7 +200,7 @@ def main(data_dir, save_dir, other_class, mtype='meso4', weights_path=None, epoc
         model.reset_classification()
 
     # Train model
-    print('\nTraining {} model on class {}...\n'.format(mtype.upper(), other_class))
+    print('\nTraining {} model on class {}...\n'.format(mtype.upper(), other_class.upper()))
     callback = CustomCallback(save_dir, save_epoch=SAVE_EPOCH)
     model.fit_with_generator(
         train_generator, len(train_generator),
