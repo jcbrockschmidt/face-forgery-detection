@@ -37,6 +37,7 @@ from tensorflow.keras.callbacks import Callback
 from sys import stderr
 
 from MesoNet.classifiers import Meso1, Meso4, MesoInception4
+from classifiers import MesoInc4Frozen16
 
 # Silence Tensorflow warnings.
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
@@ -111,12 +112,13 @@ class CustomCallback(Callback):
             self.model.save_weights(check_path)
 
 MODEL_MAP = {
-    'mesoinception4': MesoInception4,
+    'meso1': Meso1,
     'meso4': Meso4,
-    'meso1': Meso1
+    'mesoinception4': MesoInception4,
+    'mesoinc4frozen16': MesoInc4Frozen16
 }
 
-def main(data_dir, save_dir, train_class, mtype='meso4', weights_path=None, epoch=1):
+def main(data_dir, save_dir, train_class, mtype='meso4', weights_path=None, epoch=1, transfer=False):
     """
     Trains a Meso4 model.
 
@@ -124,10 +126,14 @@ def main(data_dir, save_dir, train_class, mtype='meso4', weights_path=None, epoc
         data_dir: Directory containing a "train" and "val" directory,
             each with a directory for the "real" and `train_class` classes.
         save_dir: Directory to save checkpoints and CSV file with loss and accuracy.
+        mtype: Model type.  Should be "meso1", "meso4", "mesoinception4", or "mesoinc4frozen16"
         train_class: Other class to train on, the other being "real".
         weights_path: Path to HDF5 weights file to load model with.
             A new model will be created if set to None.
         epoch: Epoch to start on.
+        transfer: Whether to transfer from a MesoInception4 to a MesoInc4Frozen4.
+            mtype should be either "mesoinception4" or "mesoinc4frozen16",
+            and a weights_path should be specified.
     """
     # Make sure training and validation set exists.
     train_dir = os.path.join(data_dir, 'train')
@@ -196,6 +202,8 @@ def main(data_dir, save_dir, train_class, mtype='meso4', weights_path=None, epoc
     model = MODEL_MAP[mtype]()
     if not weights_path is None:
         model.load(weights_path)
+    if transfer:
+        model.reset_classification()
 
     # Train model
     callback = CustomCallback(save_dir, save_epoch=SAVE_EPOCH)
@@ -221,11 +229,14 @@ if __name__ == '__main__':
         parser.add_argument('train_class', metavar='class', type=str, nargs=1,
                             help='class other than "real" to train on')
         parser.add_argument('-m', '--mtype', type=str, required=False, nargs=1,
-                            help='model type, either "meso4", "mesoinception4", or "meso1"')
+                            help='model type, either "meso1", "meso4", "mesoinception4", or "mesoinc4frozen16"')
         parser.add_argument('-w', '--weights', type=str, required=False, nargs=1,
                             help='HDF5 weight file to initialize model with')
         parser.add_argument('-e', '--epoch', type=int, required=False, nargs=1,
                             help='epoch to start on')
+        parser.add_argument('-t', '--transfer',
+                            action='store_const', const=True, default=False,
+                            help='transfer a mesoinception4 to a mesoinc4frozen16')
         args = parser.parse_args()
 
         # Validate arguments.
@@ -258,12 +269,25 @@ if __name__ == '__main__':
             print('epoch must be 0 or greater', file=stderr)
             exit(2)
 
+        transfer = args.transfer
+        if transfer:
+            if mtype != 'mesoinc4frozen16':
+                print('Can only transfer to a "mesoinc4frozen16" model',
+                      file=stderr)
+                exit(2)
+            if weights_path is None:
+                print('Please specify a weights_path for transferring',
+                      file=stderr)
+                exit(2)
+
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
         sess = tf.Session(config=config)
         set_session(sess)
 
-        main(data_dir, save_dir, train_class, mtype=mtype, weights_path=weights_path, epoch=epoch)
+        main(data_dir, save_dir, train_class,
+             mtype=mtype, weights_path=weights_path,
+             epoch=epoch, transfer=transfer)
 
     except KeyboardInterrupt:
         print('Program terminated prematurely')
