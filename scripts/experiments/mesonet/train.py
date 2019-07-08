@@ -36,8 +36,7 @@ import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
 from sys import stderr
 
-from MesoNet.classifiers import Meso1, Meso4, MesoInception4
-from classifiers import MesoInc4Frozen16
+from classifiers import MODEL_MAP
 
 # Silence Tensorflow warnings.
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
@@ -110,13 +109,6 @@ class CustomCallback(Callback):
             check_path = os.path.join(self.save_dir, '{}.hdf5'.format(epoch))
             print('Saving weights to "{}"...'.format(check_path))
             self.model.save_weights(check_path)
-
-MODEL_MAP = {
-    'meso1': Meso1,
-    'meso4': Meso4,
-    'mesoinception4': MesoInception4,
-    'mesoinc4frozen16': MesoInc4Frozen16
-}
 
 def main(data_dir, save_dir, train_class, mtype='meso4', weights_path=None, epoch=1, transfer=False):
     """
@@ -207,13 +199,12 @@ def main(data_dir, save_dir, train_class, mtype='meso4', weights_path=None, epoc
 
     # Train model
     callback = CustomCallback(save_dir, save_epoch=SAVE_EPOCH)
-    model.model.fit_generator(
+    model.fit_with_generator(
         train_generator, len(train_generator),
         validation_data=valid_generator,
         validation_steps=len(valid_generator),
         epochs=EPOCHS,
         initial_epoch=epoch,
-        verbose=1,
         shuffle=True,
         callbacks=[callback])
 
@@ -230,8 +221,8 @@ if __name__ == '__main__':
                             help='class other than "real" to train on')
         parser.add_argument('-m', '--mtype', type=str, required=False, nargs=1,
                             default=['mesoinception4'],
-                            help='model type, either "meso1", "meso4", ' \
-                            '"mesoinception4", or "mesoinc4frozen16"')
+                            help='model type, either "meso1", "meso4, ' \
+                            '"mesoinception4", "mesoinc4frozen16", and "xception"')
         parser.add_argument('-w', '--weights', type=str, required=False, nargs=1,
                             default=[None],
                             help='HDF5 weight file to initialize model with')
