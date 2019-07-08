@@ -25,19 +25,12 @@ import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
 from sys import stderr
 
-from MesoNet.classifiers import Meso1, Meso4, MesoInception4
+from classifiers import MODEL_MAP
 
 # Silence Tensorflow warnings.
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 BATCH_SIZE = 32
-
-
-MODEL_MAP = {
-    'mesoinception4': MesoInception4,
-    'meso4': Meso4,
-    'meso1': Meso1
-}
 
 def main(data_dir, other_class, weights_path, mtype):
     """
@@ -68,6 +61,7 @@ def main(data_dir, other_class, weights_path, mtype):
         exit(2)
 
     # Create data generators.
+    print('\nLoading testing data from "{}"...'.format(data_dir))
     test_data_generator = ImageDataGenerator(rescale=1/255)
     test_generator = test_data_generator.flow_from_directory(
         data_dir,
@@ -82,8 +76,8 @@ def main(data_dir, other_class, weights_path, mtype):
     model.load(weights_path)
 
     # Test model.
-    loss, acc = model.model.evaluate_generator(generator=test_generator,
-                                               steps=len(test_generator))
+    print('\nTesting {} model on class {}...\n'.format(mtype.upper(), other_class.upper()))
+    loss, acc = model.evaluate_with_generator(test_generator)
     print('loss: {}'.format(loss))
     print('accuracy: {}'.format(acc))
 

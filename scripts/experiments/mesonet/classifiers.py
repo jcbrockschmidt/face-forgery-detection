@@ -35,7 +35,19 @@ class Classifier:
                            shuffle=True,
                            callbacks=None):
         """
-        See Keras.Model.fit_generator.
+        See keras.engine.training.Model.fit_generator.
+        """
+        pass
+
+    def evaluate_with_generator(self, generator):
+        """
+        Evaluate the model with a data generator.
+
+        Args:
+            generator: The data generator with samples to evaluate.
+
+        Returns:
+            Loss and accuracy.
         """
         pass
 
@@ -70,6 +82,11 @@ class Meso1(Classifier):
                                        shuffle=shuffle,
                                        callbacks=callbacks)
 
+    def evaluate_with_generator(self, generator):
+        return self.model.model.evaluate_generator(generator=generator,
+                                              steps=len(generator),
+                                              verbose=1)
+
 class Meso4(Classifier):
     """
     Wrapper for a Meso-4 model.
@@ -101,6 +118,11 @@ class Meso4(Classifier):
                                               shuffle=shuffle,
                                               callbacks=callbacks)
 
+    def evaluate_with_generator(self, generator):
+        return self.model.model.evaluate_generator(generator=generator,
+                                              steps=len(generator),
+                                              verbose=1)
+
 class MesoInception4(Classifier):
     """
     Wrapper for a MesoInception-4 model.
@@ -131,6 +153,11 @@ class MesoInception4(Classifier):
                                               initial_epoch=initial_epoch,
                                               shuffle=shuffle,
                                               callbacks=callbacks)
+
+    def evaluate_with_generator(self, generator):
+        return self.model.model.evaluate_generator(generator=generator,
+                                              steps=len(generator),
+                                              verbose=1)
 
 class MesoInc4Frozen16(Classifier):
     """
@@ -173,6 +200,11 @@ class MesoInc4Frozen16(Classifier):
                                               initial_epoch=initial_epoch,
                                               shuffle=shuffle,
                                               callbacks=callbacks)
+
+    def evaluate_with_generator(self, generator):
+        return self.model.model.evaluate_generator(generator=generator,
+                                              steps=len(generator),
+                                              verbose=1)
 
     def reset_classification(self):
         """
@@ -217,6 +249,11 @@ class Xception(Classifier):
                                         initial_epoch=initial_epoch,
                                         shuffle=shuffle,
                                         callbacks=callbacks)
+
+    def evaluate_with_generator(self, generator):
+        return self.model.evaluate_generator(generator=generator,
+                                             steps=len(generator),
+                                             verbose=1)
 
 MODEL_MAP = {
     'meso1': Meso1,
