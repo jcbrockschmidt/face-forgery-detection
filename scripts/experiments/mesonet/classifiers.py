@@ -1,6 +1,8 @@
 import keras.backend as K
 from keras.applications import Xception as KerasXception
 from keras.initializers import glorot_uniform, zeros
+from keras.layers import Dense
+from keras.models import Model as Model
 from keras.optimizers import Adam
 import MesoNet.classifiers as mesonet_classifiers
 
@@ -84,8 +86,8 @@ class Meso1(Classifier):
 
     def evaluate_with_generator(self, generator):
         return self.model.model.evaluate_generator(generator=generator,
-                                              steps=len(generator),
-                                              verbose=1)
+                                                   steps=len(generator),
+                                                   verbose=1)
 
 class Meso4(Classifier):
     """
@@ -120,8 +122,8 @@ class Meso4(Classifier):
 
     def evaluate_with_generator(self, generator):
         return self.model.model.evaluate_generator(generator=generator,
-                                              steps=len(generator),
-                                              verbose=1)
+                                                   steps=len(generator),
+                                                   verbose=1)
 
 class MesoInception4(Classifier):
     """
@@ -156,8 +158,8 @@ class MesoInception4(Classifier):
 
     def evaluate_with_generator(self, generator):
         return self.model.model.evaluate_generator(generator=generator,
-                                              steps=len(generator),
-                                              verbose=1)
+                                                   steps=len(generator),
+                                                   verbose=1)
 
 class MesoInc4Frozen16(Classifier):
     """
@@ -203,8 +205,8 @@ class MesoInc4Frozen16(Classifier):
 
     def evaluate_with_generator(self, generator):
         return self.model.model.evaluate_generator(generator=generator,
-                                              steps=len(generator),
-                                              verbose=1)
+                                                   steps=len(generator),
+                                                   verbose=1)
 
     def reset_classification(self):
         """
@@ -228,8 +230,13 @@ class Xception(Classifier):
 
     def __init__(self, learning_rate=0.001):
         self.lr = learning_rate
-        self.optimizer = Adam(lr = learning_rate)
-        self.model = KerasXception(weights=None, input_shape=(256, 256, 3), classes=1)
+        self.optimizer = Adam(lr=learning_rate)
+        self.model = KerasXception(weights=None, input_shape=(256, 256, 3),
+                                   include_top=False, pooling='avg')
+        y = Dense(1, activation='sigmoid', name='prediction')(
+            self.model.layers[-1].output)
+        x = self.model.input
+        self.model = Model(input=x, output=y)
         self.model.compile(optimizer=self.optimizer,
                            loss='mean_squared_error',
                            metrics=['accuracy'])
