@@ -42,7 +42,6 @@ from classifiers import MODEL_MAP
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 EPOCHS = 1000
-BATCH_SIZE = 32
 SAVE_EPOCH = 5
 
 class CustomCallback(Callback):
@@ -110,7 +109,8 @@ class CustomCallback(Callback):
             print('Saving weights to "{}"...'.format(check_path))
             self.model.save_weights(check_path)
 
-def main(data_dir, save_dir, other_class, mtype='meso4', weights_path=None, epoch=1, transfer=False):
+def main(data_dir, save_dir, other_class, mtype='meso4', weights_path=None,
+         epoch=1, transfer=False, batch_size=16):
     """
     Trains a Meso4 model.
 
@@ -126,6 +126,7 @@ def main(data_dir, save_dir, other_class, mtype='meso4', weights_path=None, epoc
         transfer: Whether to transfer from a MesoInception4 to a MesoInc4Frozen4.
             mtype should be either "mesoinception4" or "mesoinc4frozen16",
             and a weights_path should be specified.
+        batch_size: Number of images to process at a time.
     """
     # Make sure training and validation set exists.
     train_dir = os.path.join(data_dir, 'train')
@@ -178,7 +179,7 @@ def main(data_dir, save_dir, other_class, mtype='meso4', weights_path=None, epoc
         train_dir,
         classes=[other_class, 'real'],
         target_size=(256, 256),
-        batch_size=BATCH_SIZE,
+        batch_size=batch_size,
         class_mode='binary',
         subset='training')
 
@@ -188,7 +189,7 @@ def main(data_dir, save_dir, other_class, mtype='meso4', weights_path=None, epoc
         valid_dir,
         classes=[other_class, 'real'],
         target_size=(256, 256),
-        batch_size=BATCH_SIZE,
+        batch_size=batch_size,
         class_mode='binary',
         subset='training')
 
@@ -235,6 +236,8 @@ if __name__ == '__main__':
         parser.add_argument('-t', '--transfer',
                             action='store_const', const=True, default=False,
                             help='transfer a mesoinception4 to a mesoinc4frozen16')
+        parser.add_argument('-b', '--batch-size', metavar='batch_size', type=int,
+                            required=False, nargs=1, default=[16])
         args = parser.parse_args()
 
         data_dir = args.data_dir[0]
@@ -243,6 +246,7 @@ if __name__ == '__main__':
         mtype = args.mtype[0].lower()
         weights_path = args.weights[0]
         epoch = args.epoch[0]
+        batch_size = args.batch_size[0]
 
         # Validate arguments.
         if not os.path.isdir(data_dir):
@@ -273,7 +277,8 @@ if __name__ == '__main__':
 
         main(data_dir, save_dir, other_class,
              mtype=mtype, weights_path=weights_path,
-             epoch=epoch, transfer=transfer)
+             epoch=epoch, transfer=transfer,
+             batch_size=batch_size)
 
     except KeyboardInterrupt:
         print('Program terminated prematurely')

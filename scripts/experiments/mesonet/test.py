@@ -30,9 +30,7 @@ from classifiers import MODEL_MAP
 # Silence Tensorflow warnings.
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
-BATCH_SIZE = 32
-
-def main(data_dir, other_class, weights_path, mtype):
+def main(data_dir, other_class, weights_path, mtype, batch_size=16):
     """
     Tests a Meso4 model.
 
@@ -41,6 +39,7 @@ def main(data_dir, other_class, weights_path, mtype):
             and `other_class`.
         other_class: Class other than "real" to test on.
         weights_path: Path to HDF5 weights file for the model.
+        batch_size: Number of images to process at a time.
     """
     # Make sure classes exist
     real_dir = os.path.join(data_dir, 'real')
@@ -67,7 +66,7 @@ def main(data_dir, other_class, weights_path, mtype):
         data_dir,
         classes=[other_class, 'real'],
         target_size=(256, 256),
-        batch_size=BATCH_SIZE,
+        batch_size=batch_size,
         class_mode='binary',
         subset='training')
 
@@ -94,13 +93,17 @@ if __name__ == '__main__':
                             help='HDF5 weight file to initialize model with')
         parser.add_argument('mtype', type=str, nargs=1,
                             help='model type, either "meso4", "mesoinception4", or "meso1"')
+        parser.add_argument('-b', '--batch-size', metavar='batch_size', type=int,
+                            required=False, nargs=1, default=[16])
         args = parser.parse_args()
 
-        # Validate arguments.
         data_dir = args.data_dir[0]
         other_class = args.other_class[0].lower()
         weights_path = args.weights[0]
         mtype = args.mtype[0]
+        batch_size = args.batch_size[0]
+
+        # Validate arguments.
         if not os.path.isdir(data_dir):
             print('"{}" is not a directory'.format(data_dir), file=stderr)
             exit(2)
@@ -113,7 +116,7 @@ if __name__ == '__main__':
         sess = tf.Session(config=config)
         set_session(sess)
 
-        main(data_dir, other_class, weights_path, mtype)
+        main(data_dir, other_class, weights_path, mtype, batch_size=batch_size)
 
     except KeyboardInterrupt:
         print('Program terminated prematurely')
