@@ -110,16 +110,16 @@ class CustomCallback(Callback):
             print('Saving weights to "{}"...'.format(check_path))
             self.model.save_weights(check_path)
 
-def main(data_dir, save_dir, train_class, mtype='meso4', weights_path=None, epoch=1, transfer=False):
+def main(data_dir, save_dir, other_class, mtype='meso4', weights_path=None, epoch=1, transfer=False):
     """
     Trains a Meso4 model.
 
     Args:
         data_dir: Directory containing a "train" and "val" directory,
-            each with a directory for the "real" and `train_class` classes.
+            each with a directory for the "real" and `other_class` classes.
         save_dir: Directory to save checkpoints and CSV file with loss and accuracy.
         mtype: Model type.  Should be "meso1", "meso4", "mesoinception4", or "mesoinc4frozen16"
-        train_class: Other class to train on, the other being "real".
+        other_class: Other class to train on, the other being "real".
         weights_path: Path to HDF5 weights file to load model with.
             A new model will be created if set to None.
         epoch: Epoch to start on.
@@ -141,15 +141,15 @@ def main(data_dir, save_dir, train_class, mtype='meso4', weights_path=None, epoc
 
     # Make sure classes exist.
     train_real_dir = os.path.join(train_dir, 'real')
-    train_class_dir = os.path.join(train_dir, train_class)
+    other_class_dir = os.path.join(train_dir, other_class)
     valid_real_dir = os.path.join(valid_dir, 'real')
-    valid_class_dir = os.path.join(valid_dir, train_class)
+    valid_class_dir = os.path.join(valid_dir, other_class)
     if not os.path.exists(train_real_dir):
         print('ERROR: "{}" has no class "real"'.format(train_real_dir),
               file=stderr)
         exit(2)
-    if not os.path.exists(train_class_dir):
-        print('ERROR: "{}" has no class "{}"'.format(train_real_dir, train_class),
+    if not os.path.exists(other_class_dir):
+        print('ERROR: "{}" has no class "{}"'.format(train_real_dir, other_class),
               file=stderr)
         exit(2)
     if not os.path.exists(valid_real_dir):
@@ -157,7 +157,7 @@ def main(data_dir, save_dir, train_class, mtype='meso4', weights_path=None, epoc
               file=stderr)
         exit(2)
     if not os.path.exists(valid_class_dir):
-        print('ERROR: "{}" has no class "{}"'.format(valid_real_dir, train_class),
+        print('ERROR: "{}" has no class "{}"'.format(valid_real_dir, other_class),
               file=stderr)
         exit(2)
 
@@ -172,19 +172,21 @@ def main(data_dir, save_dir, train_class, mtype='meso4', weights_path=None, epoc
         os.makedirs(save_dir)
 
     # Create data generators.
+    print('\nLoading training data...')
     train_data_generator = ImageDataGenerator(rescale=1/255)
     train_generator = train_data_generator.flow_from_directory(
         train_dir,
-        classes=[train_class, 'real'],
+        classes=[other_class, 'real'],
         target_size=(256, 256),
         batch_size=BATCH_SIZE,
         class_mode='binary',
         subset='training')
 
+    print('\nLoading validation data...')
     valid_data_generator = ImageDataGenerator(rescale=1/255)
     valid_generator = valid_data_generator.flow_from_directory(
         valid_dir,
-        classes=[train_class, 'real'],
+        classes=[other_class, 'real'],
         target_size=(256, 256),
         batch_size=BATCH_SIZE,
         class_mode='binary',
@@ -198,6 +200,7 @@ def main(data_dir, save_dir, train_class, mtype='meso4', weights_path=None, epoc
         model.reset_classification()
 
     # Train model
+    print('\nTraining {} model on class {}...\n'.format(mtype.upper(), other_class))
     callback = CustomCallback(save_dir, save_epoch=SAVE_EPOCH)
     model.fit_with_generator(
         train_generator, len(train_generator),
@@ -217,7 +220,7 @@ if __name__ == '__main__':
                             help='directory containing a "train" and "val" directory')
         parser.add_argument('save_dir', type=str, nargs=1,
                             help='directory to save checkpoints and other data to')
-        parser.add_argument('train_class', metavar='class', type=str, nargs=1,
+        parser.add_argument('other_class', metavar='class', type=str, nargs=1,
                             help='class other than "real" to train on')
         parser.add_argument('-m', '--mtype', type=str, required=False, nargs=1,
                             default=['mesoinception4'],
@@ -236,7 +239,7 @@ if __name__ == '__main__':
 
         data_dir = args.data_dir[0]
         save_dir = args.save_dir[0]
-        train_class = args.train_class[0].lower()
+        other_class = args.other_class[0].lower()
         mtype = args.mtype[0].lower()
         weights_path = args.weights[0]
         epoch = args.epoch[0]
@@ -268,7 +271,7 @@ if __name__ == '__main__':
         sess = tf.Session(config=config)
         set_session(sess)
 
-        main(data_dir, save_dir, train_class,
+        main(data_dir, save_dir, other_class,
              mtype=mtype, weights_path=weights_path,
              epoch=epoch, transfer=transfer)
 
