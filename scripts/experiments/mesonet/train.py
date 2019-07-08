@@ -229,36 +229,28 @@ if __name__ == '__main__':
         parser.add_argument('train_class', metavar='class', type=str, nargs=1,
                             help='class other than "real" to train on')
         parser.add_argument('-m', '--mtype', type=str, required=False, nargs=1,
-                            help='model type, either "meso1", "meso4", "mesoinception4", or "mesoinc4frozen16"')
+                            default=['mesoinception4'],
+                            help='model type, either "meso1", "meso4", ' \
+                            '"mesoinception4", or "mesoinc4frozen16"')
         parser.add_argument('-w', '--weights', type=str, required=False, nargs=1,
+                            default=[None],
                             help='HDF5 weight file to initialize model with')
         parser.add_argument('-e', '--epoch', type=int, required=False, nargs=1,
+                            default=[0],
                             help='epoch to start on')
         parser.add_argument('-t', '--transfer',
                             action='store_const', const=True, default=False,
                             help='transfer a mesoinception4 to a mesoinc4frozen16')
         args = parser.parse_args()
 
-        # Validate arguments.
         data_dir = args.data_dir[0]
         save_dir = args.save_dir[0]
         train_class = args.train_class[0].lower()
+        mtype = args.mtype[0].lower()
+        weights_path = args.weights[0]
+        epoch = args.epoch[0]
 
-        if args.mtype is None:
-            mtype = 'meso4'
-        else:
-            mtype = args.mtype[0].lower()
-
-        if args.weights is None:
-            weights_path = None
-        else:
-            weights_path = args.weights[0]
-
-        if args.epoch is None:
-            epoch = 0
-        else:
-            epoch = args.epoch[0]
-
+        # Validate arguments.
         if not os.path.isdir(data_dir):
             print('"{}" is not a directory'.format(data_dir), file=stderr)
             exit(2)
