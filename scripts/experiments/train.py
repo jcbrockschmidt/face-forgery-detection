@@ -174,6 +174,7 @@ def main(data_dir, save_dir, other_class, mtype='meso4', weights_path=None,
 
     # Create data generators.
     print('\nLoading training data from "{}"...'.format(train_dir))
+    print('BATCH SIZE: {}'.format(batch_size))  # DEBUG
     train_data_generator = ImageDataGenerator(rescale=1/255)
     train_generator = train_data_generator.flow_from_directory(
         train_dir,

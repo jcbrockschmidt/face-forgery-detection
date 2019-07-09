@@ -195,18 +195,18 @@ class MesoInc4Frozen16(Classifier):
                            shuffle=True,
                            callbacks=None):
 
-        return self.model.model.fit_generator(generator, steps_per_epoch,
-                                              validation_data=validation_data,
-                                              validation_steps=validation_steps,
-                                              epochs=epochs,
-                                              initial_epoch=initial_epoch,
-                                              shuffle=shuffle,
-                                              callbacks=callbacks)
+        return self.model.fit_generator(generator, steps_per_epoch,
+                                        validation_data=validation_data,
+                                        validation_steps=validation_steps,
+                                        epochs=epochs,
+                                        initial_epoch=initial_epoch,
+                                        shuffle=shuffle,
+                                        callbacks=callbacks)
 
     def evaluate_with_generator(self, generator):
-        return self.model.model.evaluate_generator(generator=generator,
-                                                   steps=len(generator),
-                                                   verbose=1)
+        return self.model.evaluate_generator(generator=generator,
+                                             steps=len(generator),
+                                             verbose=1)
 
     def reset_classification(self):
         """
@@ -236,7 +236,7 @@ class Xception(Classifier):
         y = Dense(1, activation='sigmoid', name='prediction')(
             self.model.layers[-1].output)
         x = self.model.input
-        self.model = Model(input=x, output=y)
+        self.model = Model(inputs=x, outputs=y)
         self.model.compile(optimizer=self.optimizer,
                            loss='mean_squared_error',
                            metrics=['accuracy'])

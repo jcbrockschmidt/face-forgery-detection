@@ -92,7 +92,8 @@ if __name__ == '__main__':
         parser.add_argument('weights', type=str, nargs=1,
                             help='HDF5 weight file to initialize model with')
         parser.add_argument('mtype', type=str, nargs=1,
-                            help='model type, either "meso4", "mesoinception4", or "meso1"')
+                            help='model type, either "meso1", "meso4", ' \
+                            '"mesoinception4", "mesoinc4frozen16", or "xception"')
         parser.add_argument('-b', '--batch-size', metavar='batch_size', type=int,
                             required=False, nargs=1, default=[16])
         args = parser.parse_args()
