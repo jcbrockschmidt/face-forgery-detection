@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Trains a Meso4 model.
+Trains a model.
 
 ```
 ./train.py <DATA_DIR> <SAVE_DIR> <CLASS> -w <WEIGHT_PATH> -e <EPOCH>
@@ -112,7 +112,7 @@ class CustomCallback(Callback):
 def main(data_dir, save_dir, other_class, mtype='meso4', weights_path=None,
          epoch=1, transfer=False, batch_size=16):
     """
-    Trains a Meso4 model.
+    Trains a model.
 
     Args:
         data_dir: Directory containing a "train" and "val" directory,

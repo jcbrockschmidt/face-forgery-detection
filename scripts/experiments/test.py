@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Tests a Meso4 model against a testing set.
+Tests a model against a testing set.
 
 ```
 ./test.py <DATA_DIR> <CLASS> <WEIGHTS>
@@ -32,7 +32,7 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 def main(data_dir, other_class, weights_path, mtype, batch_size=16):
     """
-    Tests a Meso4 model.
+    Tests a model.
 
     Args:
         data_dir: Directory containing test classes, including "real"
@@ -84,7 +84,7 @@ def main(data_dir, other_class, weights_path, mtype, batch_size=16):
 if __name__ == '__main__':
     try:
         parser = argparse.ArgumentParser(
-            description='Trains a Meso4 model')
+            description='Tests a model')
         parser.add_argument('data_dir', type=str, nargs=1,
                             help='directory containing test classes')
         parser.add_argument('other_class', metavar='class', type=str, nargs=1,
