@@ -18,7 +18,7 @@ class Classifier:
         Args:
             path: Path to weights file.
         """
-        pass
+        raise NotImplementedError()
 
     def save(self, path):
         """
@@ -26,8 +26,9 @@ class Classifier:
 
         Args:
             path: Path to weights file.
+        raise NotImplementedError()
         """
-        pass
+        raise NotImplementedError()
 
     def fit_with_generator(self, generator, steps_per_epoch,
                            validation_data=None,
@@ -39,7 +40,7 @@ class Classifier:
         """
         See keras.engine.training.Model.fit_generator.
         """
-        pass
+        raise NotImplementedError()
 
     def evaluate_with_generator(self, generator):
         """
@@ -51,7 +52,7 @@ class Classifier:
         Returns:
             Loss and accuracy.
         """
-        pass
+        raise NotImplementedError()
 
 class Meso1(Classifier):
     """
@@ -240,6 +241,24 @@ class Xception(Classifier):
         self.model.compile(optimizer=self.optimizer,
                            loss='mean_squared_error',
                            metrics=['accuracy'])
+
+    def load(self, path):
+        """
+        Load weights for a model.
+
+        Args:
+            path: Path to weights file.
+        """
+        self.model.load_weights(path)
+
+    def save(self, path):
+        """
+        Save weights for a model.
+
+        Args:
+            path: Path to weights file.
+        """
+        self.model.save_weights(path)
 
     def fit_with_generator(self, generator, steps_per_epoch,
                            validation_data=None,
