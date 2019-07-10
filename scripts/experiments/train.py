@@ -215,6 +215,13 @@ def main(data_dir, save_dir, other_class, mtype='meso4', weights_path=None,
 
 if __name__ == '__main__':
     try:
+        # Construct a string listing all model types in the format
+        #
+        #    'model1, model2, model3, or model4'
+        #
+        models = ['"{}"'.format(k.lower()) for k in MODEL_MAP.keys()]
+        models_str = '{}, or {}'.format(', '.join(models[:-1]), models[-1])
+
         parser = argparse.ArgumentParser(
             description='Trains a MesoNet model')
         parser.add_argument('data_dir', type=str, nargs=1,
@@ -225,8 +232,7 @@ if __name__ == '__main__':
                             help='class other than "real" to train on')
         parser.add_argument('-m', '--mtype', type=str, required=False, nargs=1,
                             default=['mesoinception4'],
-                            help='model type, either "meso1", "meso4, ' \
-                            '"mesoinception4", "mesoinc4frozen16", and "xception"')
+                            help='model type, either {}'.format(models_str))
         parser.add_argument('-w', '--weights', type=str, required=False, nargs=1,
                             default=[None],
                             help='HDF5 weight file to initialize model with')

@@ -83,6 +83,13 @@ def main(data_dir, other_class, weights_path, mtype, batch_size=16):
 
 if __name__ == '__main__':
     try:
+        # Construct a string listing all model types in the format
+        #
+        #    'model1, model2, model3, or model4'
+        #
+        models = ['"{}"'.format(k.lower()) for k in MODEL_MAP.keys()]
+        models_str = '{}, or {}'.format(', '.join(models[:-1]), models[-1])
+
         parser = argparse.ArgumentParser(
             description='Tests a model')
         parser.add_argument('data_dir', type=str, nargs=1,
@@ -92,8 +99,7 @@ if __name__ == '__main__':
         parser.add_argument('weights', type=str, nargs=1,
                             help='HDF5 weight file to initialize model with')
         parser.add_argument('mtype', type=str, nargs=1,
-                            help='model type, either "meso1", "meso4", ' \
-                            '"mesoinception4", "mesoinc4frozen16", or "xception"')
+                            help='model type, either {}'.format(models_str))
         parser.add_argument('-b', '--batch-size', metavar='batch_size', type=int,
                             required=False, nargs=1, default=[16],
                             help='number of images to read at a time')
