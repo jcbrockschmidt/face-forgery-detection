@@ -95,7 +95,8 @@ if __name__ == '__main__':
                             help='model type, either "meso1", "meso4", ' \
                             '"mesoinception4", "mesoinc4frozen16", or "xception"')
         parser.add_argument('-b', '--batch-size', metavar='batch_size', type=int,
-                            required=False, nargs=1, default=[16])
+                            required=False, nargs=1, default=[16],
+                            help='number of images to read at a time')
         args = parser.parse_args()
 
         data_dir = args.data_dir[0]
