@@ -216,7 +216,7 @@ class MesoInc4Frozen16(Classifier):
         Args:
             Path to weights file for a MesoInception-4 model.
         """
-        self.model.load_transfer(path)
+        self.model.load_weights(path)
         self.reset_classification()
 
     def reset_classification(self):
