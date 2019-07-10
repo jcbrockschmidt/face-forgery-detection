@@ -97,6 +97,10 @@ if __name__ == '__main__':
         parser.add_argument('-b', '--batch-size', metavar='batch_size', type=int,
                             required=False, nargs=1, default=[16],
                             help='number of images to read at a time')
+        parser.add_argument('-g', '--gpu-fraction', metavar='batch_size', type=float,
+                            required=False, nargs=1, default=[1.0],
+                            help='maximum fraction of the GPU\'s memory the ' \
+                            'model is allowed to use, between 0.0 and 1.0')
         args = parser.parse_args()
 
         data_dir = args.data_dir[0]
@@ -104,6 +108,7 @@ if __name__ == '__main__':
         weights_path = args.weights[0]
         mtype = args.mtype[0]
         batch_size = args.batch_size[0]
+        gpu_frac = args.gpu_fraction[0]
 
         # Validate arguments.
         if not os.path.isdir(data_dir):
@@ -112,9 +117,13 @@ if __name__ == '__main__':
         if not weights_path is None and not os.path.isfile(weights_path):
             print('"{}" is not a file'.format(weights_path), file=stderr)
             exit(2)
+        if gpu_frac < 0 or gpu_frac > 1:
+            print('gpu-fraction must be between 0.0 and 1.0', file=stderr)
+            exit(2)
 
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
+        config.gpu_options.per_process_gpu_memory_fraction = gpu_frac
         sess = tf.Session(config=config)
         set_session(sess)
 

@@ -174,7 +174,6 @@ def main(data_dir, save_dir, other_class, mtype='meso4', weights_path=None,
 
     # Create data generators.
     print('\nLoading training data from "{}"...'.format(train_dir))
-    print('BATCH SIZE: {}'.format(batch_size))  # DEBUG
     train_data_generator = ImageDataGenerator(rescale=1/255)
     train_generator = train_data_generator.flow_from_directory(
         train_dir,
@@ -240,6 +239,10 @@ if __name__ == '__main__':
         parser.add_argument('-b', '--batch-size', metavar='batch_size', type=int,
                             required=False, nargs=1, default=[16],
                             help='number of images to read at a time')
+        parser.add_argument('-g', '--gpu-fraction', metavar='batch_size', type=float,
+                            required=False, nargs=1, default=[1.0],
+                            help='maximum fraction of the GPU\'s memory the ' \
+                            'model is allowed to use, between 0.0 and 1.0')
         args = parser.parse_args()
 
         data_dir = args.data_dir[0]
@@ -249,6 +252,7 @@ if __name__ == '__main__':
         weights_path = args.weights[0]
         epoch = args.epoch[0]
         batch_size = args.batch_size[0]
+        gpu_frac = args.gpu_fraction[0]
 
         # Validate arguments.
         if not os.path.isdir(data_dir):
@@ -272,8 +276,13 @@ if __name__ == '__main__':
                       file=stderr)
                 exit(2)
 
+        if gpu_frac < 0 or gpu_frac > 1:
+            print('gpu-fraction must be between 0.0 and 1.0', file=stderr)
+            exit(2)
+
         config = tf.ConfigProto()
         config.gpu_options.allow_growth = True
+        config.gpu_options.per_process_gpu_memory_fraction = gpu_frac
         sess = tf.Session(config=config)
         set_session(sess)
 
