@@ -195,10 +195,10 @@ def main(data_dir, save_dir, other_class, mtype='meso4', weights_path=None,
 
     # Create model.
     model = MODEL_MAP[mtype]()
-    if not weights_path is None:
-        model.load(weights_path)
     if transfer:
-        model.reset_classification()
+        model.load_transfer(weights_path)
+    elif not weights_path is None:
+        model.load(weights_path)
 
     # Train model
     print('\nTraining {} model on class {}...\n'.format(mtype.upper(), other_class.upper()))
@@ -273,8 +273,8 @@ if __name__ == '__main__':
 
         transfer = args.transfer
         if transfer:
-            if mtype != 'mesoinc4frozen16':
-                print('Can only transfer to a "mesoinc4frozen16" model',
+            if not mtype in ('mesoinc4frozen16', 'mesoinc4frozen48'):
+                print('Can only transfer to a "mesoinc4frozen16" or "mesoinc4frozen48" model',
                       file=stderr)
                 exit(2)
             if weights_path is None:
