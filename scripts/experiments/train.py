@@ -109,7 +109,66 @@ class CustomCallback(Callback):
             print('Saving weights to "{}"...'.format(check_path))
             self.model.save_weights(check_path)
 
-def main(data_dir, save_dir, other_class, mtype='meso4', weights_path=None,
+def create_data_generator(data_dir, other_classes, batch_size):
+    """
+    Creates a 2-class data generator for real and fake face images.
+
+    Args:
+        data_dir: Directory containing class directories.
+        other_classes: Collection of classes other than "real".  The class
+            "real" will be included in the generator by default.
+        batch_size: Number of images to process at time.
+
+    Returns:
+        A DirectoryIterator and a dictionary of class weights.
+        The DirectoryIterator has two classes, "fake" and "real", where fake
+        images are labeled 0 and real images are labeled 1.  The class weights
+        maps class indices (0 for fake and 1 for "real") to the inverse of their
+        proportion of the samples. For instance, if their were 12 fake images
+        and 8 real images, the class weights would be
+
+        {
+            0 : 0.4,
+            1 : 0.6
+        }
+
+        The real images are weighted more heavily since they have fewer samples.
+        These weights can help combat class imbalances during training.
+    """
+    # Initialize generator.
+    classes = list(other_classes) + ['real']
+    generator = ImageDataGenerator(rescale=1/255).flow_from_directory(
+        data_dir,
+        classes=classes,
+        target_size=(256, 256),
+        batch_size=batch_size,
+        class_mode='binary',
+        subset='training')
+
+    # Modify data labels.
+    real_index = generator.class_indices['real']
+    new_classes = [1 if i == real_index else 0 for i in generator.classes]
+    generator.classes = np.array(new_classes, dtype=np.int32)
+
+    # Change class-to-index mapping.
+    new_indices_map = {
+        'fake' : 0,
+        'real' : 1
+    }
+    generator.class_indices = new_indices_map
+
+    # Calculate the weights.
+    _, counts = np.unique(generator.classes, return_counts=True)
+    fake_prop = counts[0] / generator.samples
+    real_prop = 1 - fake_prop
+    weights = {
+        0 : real_prop,
+        1 : fake_prop
+    }
+
+    return generator, weights
+
+def main(data_dir, save_dir, other_classes, mtype, weights_path=None,
          epoch=1, transfer=False, batch_size=16):
     """
     Trains a model.
@@ -119,7 +178,7 @@ def main(data_dir, save_dir, other_class, mtype='meso4', weights_path=None,
             each with a directory for the "real" and `other_class` classes.
         save_dir: Directory to save checkpoints and CSV file with loss and accuracy.
         mtype: Model type.  Should be "meso1", "meso4", "mesoinception4", or "mesoinc4frozen16"
-        other_class: Other class to train on, the other being "real".
+        other_classes: Other classes to train on (wherein the default class is "real").
         weights_path: Path to HDF5 weights file to load model with.
             A new model will be created if set to None.
         epoch: Epoch to start on.
@@ -141,26 +200,17 @@ def main(data_dir, save_dir, other_class, mtype='meso4', weights_path=None,
         exit(2)
 
     # Make sure classes exist.
-    train_real_dir = os.path.join(train_dir, 'real')
-    other_class_dir = os.path.join(train_dir, other_class)
-    valid_real_dir = os.path.join(valid_dir, 'real')
-    valid_class_dir = os.path.join(valid_dir, other_class)
-    if not os.path.exists(train_real_dir):
-        print('ERROR: "{}" has no class "real"'.format(train_real_dir),
-              file=stderr)
-        exit(2)
-    if not os.path.exists(other_class_dir):
-        print('ERROR: "{}" has no class "{}"'.format(train_real_dir, other_class),
-              file=stderr)
-        exit(2)
-    if not os.path.exists(valid_real_dir):
-        print('ERROR: "{}" has no class "real"'.format(valid_real_dir),
-              file=stderr)
-        exit(2)
-    if not os.path.exists(valid_class_dir):
-        print('ERROR: "{}" has no class "{}"'.format(valid_real_dir, other_class),
-              file=stderr)
-        exit(2)
+    for c in other_classes + ['real']:
+        class_train_dir = os.path.join(train_dir, c)
+        class_valid_dir = os.path.join(valid_dir, c)
+        if not os.path.exists(class_train_dir):
+            print('ERROR: "{}" has no class "{}"'.format(train_dir, c),
+                  file=stderr)
+            exit(2)
+            if not os.path.exists(class_valid_dir):
+                print('ERROR: "{}" has no class "{}"'.format(valid_dir, c),
+                      file=stderr)
+            exit(2)
 
     # Make sure model is valid.
     if not mtype in MODEL_MAP:
@@ -174,39 +224,29 @@ def main(data_dir, save_dir, other_class, mtype='meso4', weights_path=None,
 
     # Create data generators.
     print('\nLoading training data from "{}"...'.format(train_dir))
-    train_data_generator = ImageDataGenerator(rescale=1/255)
-    train_generator = train_data_generator.flow_from_directory(
-        train_dir,
-        classes=[other_class, 'real'],
-        target_size=(256, 256),
-        batch_size=batch_size,
-        class_mode='binary',
-        subset='training')
+    train_generator, class_weight = create_data_generator(train_dir, other_classes, batch_size)
 
     print('\nLoading validation data from "{}"...'.format(valid_dir))
-    valid_data_generator = ImageDataGenerator(rescale=1/255)
-    valid_generator = valid_data_generator.flow_from_directory(
-        valid_dir,
-        classes=[other_class, 'real'],
-        target_size=(256, 256),
-        batch_size=batch_size,
-        class_mode='binary',
-        subset='training')
+    valid_generator, _ = create_data_generator(valid_dir, other_classes, batch_size)
 
     # Create model.
     model = MODEL_MAP[mtype]()
     if transfer:
+        print('\nTransferring MESOINCEPTION4 model from "{}"'.format(weights_path))
         model.load_transfer(weights_path)
     elif not weights_path is None:
+        print('\nLoading {} model from "{}"'.format(mtype.upper(), weights_path))
         model.load(weights_path)
 
-    # Train model
-    print('\nTraining {} model on class {}...\n'.format(mtype.upper(), other_class.upper()))
+    # Train model.
+    classes_str = ', '.join(other_classes)
+    print('\nTraining {} model on classes {}...\n'.format(mtype.upper(), classes_str.upper()))
     callback = CustomCallback(save_dir, save_epoch=SAVE_EPOCH)
     model.fit_with_generator(
         train_generator, len(train_generator),
         validation_data=valid_generator,
         validation_steps=len(valid_generator),
+        class_weight=class_weight,
         epochs=EPOCHS,
         initial_epoch=epoch,
         shuffle=True,
@@ -224,14 +264,16 @@ if __name__ == '__main__':
 
         parser = argparse.ArgumentParser(
             description='Trains a MesoNet model')
-        parser.add_argument('data_dir', type=str, nargs=1,
+        parser.add_argument('-d', '--data-dir', dest='data_dir', type=str,
+                            required=True, nargs=1,
                             help='directory containing a "train" and "val" directory')
-        parser.add_argument('save_dir', type=str, nargs=1,
+        parser.add_argument('-s', '--save-dir', dest='save_dir', type=str,
+                            required=True, nargs=1,
                             help='directory to save checkpoints and other data to')
-        parser.add_argument('other_class', metavar='class', type=str, nargs=1,
-                            help='class other than "real" to train on')
-        parser.add_argument('-m', '--mtype', type=str, required=False, nargs=1,
-                            default=['mesoinception4'],
+        parser.add_argument('-c', '--classes', metavar='class', dest='other_classes',
+                            type=str, nargs='+', required=True,
+                            help='classes other than "real" to train on')
+        parser.add_argument('-m', '--mtype', type=str, required=True, nargs=1,
                             help='model type, either {}'.format(models_str))
         parser.add_argument('-w', '--weights', type=str, required=False, nargs=1,
                             default=[None],
@@ -253,10 +295,11 @@ if __name__ == '__main__':
 
         data_dir = args.data_dir[0]
         save_dir = args.save_dir[0]
-        other_class = args.other_class[0].lower()
+        other_classes = args.other_classes
         mtype = args.mtype[0].lower()
         weights_path = args.weights[0]
         epoch = args.epoch[0]
+        transfer = args.transfer
         batch_size = args.batch_size[0]
         gpu_frac = args.gpu_fraction[0]
 
@@ -267,11 +310,9 @@ if __name__ == '__main__':
         if not weights_path is None and not os.path.isfile(weights_path):
             print('"{}" is not a file'.format(weights_path), file=stderr)
             exit(2)
-        elif epoch < 0:
+        if epoch < 0:
             print('epoch must be 0 or greater', file=stderr)
             exit(2)
-
-        transfer = args.transfer
         if transfer:
             if not mtype in ('mesoinc4frozen16', 'mesoinc4frozen48'):
                 print('Can only transfer to a "mesoinc4frozen16" or "mesoinc4frozen48" model',
@@ -292,9 +333,10 @@ if __name__ == '__main__':
         sess = tf.Session(config=config)
         set_session(sess)
 
-        main(data_dir, save_dir, other_class,
-             mtype=mtype, weights_path=weights_path,
-             epoch=epoch, transfer=transfer,
+        main(data_dir, save_dir, other_classes, mtype,
+             weights_path=weights_path,
+             epoch=epoch,
+             transfer=transfer,
              batch_size=batch_size)
 
     except KeyboardInterrupt:
