@@ -19,39 +19,35 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Silence Tensorflow warnings.
 
 import argparse
 from keras.backend.tensorflow_backend import set_session
-from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
 from sys import stderr
 
 from classifiers import MODEL_MAP
+from utils import create_data_generator, tnr_pred, tpr_pred
 
 # Silence Tensorflow warnings.
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
-def main(data_dir, other_class, weights_path, mtype, batch_size=16):
+def main(data_dir, other_classes, weights_path, mtype, batch_size=16):
     """
     Tests a model.
 
     Args:
         data_dir: Directory containing test classes, including "real"
             and `other_class`.
-        other_class: Class other than "real" to test on.
+        other_classes: Collection of classes other than "real" to test on.
         weights_path: Path to HDF5 weights file for the model.
         batch_size: Number of images to process at a time.
     """
     # Make sure classes exist
-    real_dir = os.path.join(data_dir, 'real')
-    other_dir = os.path.join(data_dir, other_class)
-    if not os.path.exists(real_dir):
-        print('ERROR: "{}" has no class "real"'.format(real_dir),
-              file=stderr)
-        exit(2)
-    if not os.path.exists(other_dir):
-        print('ERROR: "{}" has no class "{}"'.format(data_dir, other_class),
-              file=stderr)
-        exit(2)
+    for c in other_classes + ['real']:
+        test_dir = os.path.join(data_dir, c)
+        if not os.path.exists(test_dir):
+            print('ERROR: "{}" has no class "{}"'.format(test_dir, c),
+                  file=stderr)
+            exit(2)
 
     # Make sure model is valid.
     if not mtype in MODEL_MAP:
@@ -61,24 +57,21 @@ def main(data_dir, other_class, weights_path, mtype, batch_size=16):
 
     # Create data generators.
     print('\nLoading testing data from "{}"...'.format(data_dir))
-    test_data_generator = ImageDataGenerator(rescale=1/255)
-    test_generator = test_data_generator.flow_from_directory(
-        data_dir,
-        classes=[other_class, 'real'],
-        target_size=(256, 256),
-        batch_size=batch_size,
-        class_mode='binary',
-        subset='training')
+    test_generator, _ = create_data_generator(data_dir, other_classes, batch_size)
 
     # Create model.
     model = MODEL_MAP[mtype]()
     model.load(weights_path)
+    model.set_metrics(['acc', tpr_pred, tnr_pred])
 
     # Test model.
-    print('\nTesting {} model on class {}...\n'.format(mtype.upper(), other_class.upper()))
-    loss, acc = model.evaluate_with_generator(test_generator)
-    print('loss: {}'.format(loss))
-    print('accuracy: {}'.format(acc))
+    classes_str = ', '.join(other_classes)
+    print('\nTesting {} model on class {}...\n'.format(mtype.upper(), classes_str.upper()))
+    mse, acc, tpr, tnr = model.evaluate_with_generator(test_generator)
+    print('mse:\t{}'.format(mse))
+    print('acc:\t{}'.format(acc))
+    print('tpr:\t{}'.format(tpr))
+    print('tnr:\t{}'.format(tnr))
 
 
 if __name__ == '__main__':
@@ -92,13 +85,16 @@ if __name__ == '__main__':
 
         parser = argparse.ArgumentParser(
             description='Tests a model')
-        parser.add_argument('data_dir', type=str, nargs=1,
-                            help='directory containing test classes')
-        parser.add_argument('other_class', metavar='class', type=str, nargs=1,
-                            help='class other than "real" to test on')
-        parser.add_argument('weights', type=str, nargs=1,
+        parser.add_argument('-d', '--data-dir', dest='data_dir', type=str,
+                            required=True, nargs=1,
+                            help='directory containing a "train" and "val" directory')
+        parser.add_argument('-c', '--classes', metavar='classes', dest='other_classes',
+                            type=str, nargs='+', required=True,
+                            help='classes other than "real" to train on')
+        parser.add_argument('-w', '--weights', type=str, required=True, nargs=1,
+                            default=[None],
                             help='HDF5 weight file to initialize model with')
-        parser.add_argument('mtype', type=str, nargs=1,
+        parser.add_argument('-m', '--mtype', type=str, required=True, nargs=1,
                             help='model type, either {}'.format(models_str))
         parser.add_argument('-b', '--batch-size', metavar='batch_size', type=int,
                             required=False, nargs=1, default=[16],
@@ -110,7 +106,7 @@ if __name__ == '__main__':
         args = parser.parse_args()
 
         data_dir = args.data_dir[0]
-        other_class = args.other_class[0].lower()
+        other_classes = args.other_classes
         weights_path = args.weights[0]
         mtype = args.mtype[0]
         batch_size = args.batch_size[0]
@@ -133,7 +129,7 @@ if __name__ == '__main__':
         sess = tf.Session(config=config)
         set_session(sess)
 
-        main(data_dir, other_class, weights_path, mtype, batch_size=batch_size)
+        main(data_dir, other_classes, weights_path, mtype, batch_size=batch_size)
 
     except KeyboardInterrupt:
         print('Program terminated prematurely')

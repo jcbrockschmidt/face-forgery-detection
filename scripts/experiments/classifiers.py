@@ -51,7 +51,16 @@ class Classifier:
             generator: The data generator with samples to evaluate.
 
         Returns:
-            Loss and accuracy.
+            Performance metrics.
+        """
+        raise NotImplementedError()
+
+    def set_metrics(self, metrics):
+        """
+        Sets the metrics used to judge the performance of the model.
+
+        Args:
+            metrics: Keras-compatible metrics.
         """
         raise NotImplementedError()
 
@@ -63,6 +72,10 @@ class Meso1(Classifier):
     def __init__(self, learning_rate=0.001):
         self.lr = learning_rate
         self.model = mesonet_classifiers.Meso1(self.lr)
+        self.optimizer = Adam(lr=learning_rate)
+        self.model.model.compile(optimizer=self.optimizer,
+                                 loss='mean_squared_error',
+                                 metrics=['accuracy'])
 
     def load(self, path):
         self.model.load(path)
@@ -101,6 +114,10 @@ class Meso4(Classifier):
     def __init__(self, learning_rate=0.001):
         self.lr = learning_rate
         self.model = mesonet_classifiers.Meso4(self.lr)
+        self.optimizer = Adam(lr=learning_rate)
+        self.model.model.compile(optimizer=self.optimizer,
+                                 loss='mean_squared_error',
+                                 metrics=['accuracy'])
 
     def load(self, path):
         self.model.load(path)
@@ -139,6 +156,10 @@ class MesoInception4(Classifier):
     def __init__(self, learning_rate=0.001):
         self.lr = learning_rate
         self.model = mesonet_classifiers.MesoInception4(learning_rate=self.lr)
+        self.optimizer = Adam(lr=learning_rate)
+        self.model.model.compile(optimizer=self.optimizer,
+                                 loss='mean_squared_error',
+                                 metrics=['accuracy'])
 
     def load(self, path):
         self.model.load(path)
@@ -168,6 +189,11 @@ class MesoInception4(Classifier):
         return self.model.model.evaluate_generator(generator=generator,
                                                    steps=len(generator),
                                                    verbose=1)
+
+    def set_metrics(self, metrics):
+        self.model.model.compile(optimizer=self.optimizer,
+                                 loss='mean_squared_error',
+                                 metrics=metrics)
 
 class MesoInc4Frozen16(Classifier):
     """
@@ -217,6 +243,11 @@ class MesoInc4Frozen16(Classifier):
         return self.model.evaluate_generator(generator=generator,
                                              steps=len(generator),
                                              verbose=1)
+
+    def set_metrics(self, metrics):
+        self.model.compile(optimizer=self.optimizer,
+                           loss='mean_squared_error',
+                           metrics=metrics)
 
     def load_transfer(self, path):
         """
@@ -311,6 +342,11 @@ class MesoInc4Frozen48(Classifier):
                                              steps=len(generator),
                                              verbose=1)
 
+    def set_metrics(self, metrics):
+        self.model.compile(optimizer=self.optimizer,
+                           loss='mean_squared_error',
+                           metrics=metrics)
+
     def load_transfer(self, path):
         """
         Loads weights from a MesoInception-4 model.
@@ -398,6 +434,11 @@ class Xception(Classifier):
         return self.model.evaluate_generator(generator=generator,
                                              steps=len(generator),
                                              verbose=1)
+
+    def set_metrics(self, metrics):
+        self.model.compile(optimizer=self.optimizer,
+                           loss='mean_squared_error',
+                           metrics=metrics)
 
 MODEL_MAP = {
     'meso1': Meso1,
