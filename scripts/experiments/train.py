@@ -218,7 +218,7 @@ if __name__ == '__main__':
         models_str = '{}, or {}'.format(', '.join(models[:-1]), models[-1])
 
         parser = argparse.ArgumentParser(
-            description='Trains a MesoNet model')
+            description='Trains a model')
         parser.add_argument('-d', '--data-dir', dest='data_dir', type=str,
                             required=True, nargs=1,
                             help='directory containing a "train" and "val" directory')
