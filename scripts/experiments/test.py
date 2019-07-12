@@ -63,7 +63,12 @@ def main(data_dir, other_classes, weights_path, mtype,
     test_generator, _ = create_data_generator(data_dir, other_classes, batch_size, class_mode)
 
     # Create model.
-    model = MODEL_MAP[mtype]()
+    # Create model.
+    if class_mode == 'categorical':
+        classes = len(other_classes) + 1
+        model = MODEL_MAP[mtype](class_mode=class_mode, classes=classes)
+    else:
+        model = MODEL_MAP[mtype]()
     model.load(weights_path)
     model.set_metrics(['acc', tpr_pred, tnr_pred])
 

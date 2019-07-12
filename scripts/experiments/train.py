@@ -184,7 +184,11 @@ def main(data_dir, save_dir, other_classes, mtype,
         valid_dir, other_classes, batch_size, class_mode)
 
     # Create model.
-    model = MODEL_MAP[mtype]()
+    if class_mode == 'categorical':
+        classes = len(other_classes) + 1
+        model = MODEL_MAP[mtype](class_mode=class_mode, classes=classes)
+    else:
+        model = MODEL_MAP[mtype]()
     if transfer:
         print('\nTransferring MESOINCEPTION4 model from "{}"'.format(weights_path))
         model.load_transfer(weights_path)

@@ -148,8 +148,14 @@ class MesoInception4(Classifier):
     MesoInception-4 model, borrowed from https://github.com/DariusAf/MesoNet
     """
 
-    def __init__(self, learning_rate=0.001):
-        self.model = self._init_model()
+    def __init__(self, learning_rate=0.001, class_mode='binary', classes=None):
+        """
+        Args:
+            learning_rate: The learning rate for the optimizer.
+            class_mode: One of "binary" or "categorical".
+            classes: Number of classes when `class_mode` is "categorical".
+        """
+        self.model = self._init_model(class_mode, classes=classes)
         self.optimizer = Adam(lr=learning_rate)
         self.model.compile(optimizer=self.optimizer,
                                  loss='mean_squared_error',
@@ -179,7 +185,17 @@ class MesoInception4(Classifier):
             return y
         return func
 
-    def _init_model(self):
+    def _init_model(self, class_mode, classes=None):
+        if not class_mode in {'binary', 'categorical'}:
+            raise ValueError(
+                '{} is an invalid class mode. ' \
+                '`class_mode` must be "binary" or ' \
+                '"categorical"'.format(class_mode))
+
+        if class_mode == 'categorical' and type(classes) != int:
+            raise TypeError('When `class_mode` is "categorical" you must ' \
+                            'provide an integer for `classes`')
+
         x = Input(shape=(IMG_SIZE, IMG_SIZE, 3))
 
         x1 = self.InceptionLayer(1, 4, 4, 2)(x)
@@ -190,11 +206,11 @@ class MesoInception4(Classifier):
         x2 = BatchNormalization()(x2)
         x2 = MaxPooling2D(pool_size=(2, 2), padding='same')(x2)
 
-        x3 = Conv2D(16, (5, 5), padding='same', activation = 'relu')(x2)
+        x3 = Conv2D(16, (5, 5), padding='same', activation='relu')(x2)
         x3 = BatchNormalization()(x3)
         x3 = MaxPooling2D(pool_size=(2, 2), padding='same')(x3)
 
-        x4 = Conv2D(16, (5, 5), padding='same', activation = 'relu')(x3)
+        x4 = Conv2D(16, (5, 5), padding='same', activation='relu')(x3)
         x4 = BatchNormalization()(x4)
         x4 = MaxPooling2D(pool_size=(4, 4), padding='same')(x4)
 
@@ -203,7 +219,11 @@ class MesoInception4(Classifier):
         y = Dense(16)(y)
         y = LeakyReLU(alpha=0.1)(y)
         y = Dropout(0.5)(y)
-        y = Dense(1, activation = 'sigmoid')(y)
+
+        if class_mode == 'categorical':
+            y = Dense(classes, activation='softmax', name='predictions')(y)
+        else:
+            y = Dense(1, activation='sigmoid', name='predictions')(y)
 
         return Model(inputs = x, outputs = y)
 
@@ -215,9 +235,9 @@ class MesoInc4Frozen16(MesoInception4):
 
     FREEZE_BOUND = 27
 
-    def __init__(self, learning_rate=0.001):
+    def __init__(self, learning_rate=0.001, class_mode='binary', classes=2):
         self.lr = learning_rate
-        self.model = self._init_model()
+        self.model = self._init_model(class_mode, classes=classes)
 
         # Freeze the convolutional layers.
         for layer in self.model.layers[:self.FREEZE_BOUND]:
