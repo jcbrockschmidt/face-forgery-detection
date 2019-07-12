@@ -40,12 +40,12 @@ def create_data_generator(data_dir, other_classes, batch_size, class_mode):
         class_mode=class_mode,
         subset='training')
 
-    # Modify data labels.
-    real_index = generator.class_indices['real']
-    new_classes = [1 if i == real_index else 0 for i in generator.classes]
-    generator.classes = np.array(new_classes, dtype=np.int32)
-
     if class_mode == 'binary':
+        # Modify data labels.
+        real_index = generator.class_indices['real']
+        new_classes = [1 if i == real_index else 0 for i in generator.classes]
+        generator.classes = np.array(new_classes, dtype=np.int32)
+
         # Change class-to-index mapping.
         new_indices_map = {
             'fake' : 0,
