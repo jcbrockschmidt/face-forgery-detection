@@ -252,74 +252,6 @@ class MesoInc4Frozen16(MesoInception4):
                            loss='mean_squared_error',
                            metrics=['accuracy'])
 
-class MesoInc4Frozen48(Classifier):
-    """
-    A MesoInception-4 model where the convolutional layers are untrainable
-    and the flat/classifier layers are made up of 3 layers of 16 neurons.
-    """
-
-    FREEZE_BOUND = 27
-
-    def __init__(self, learning_rate=0.001):
-        self.lr = learning_rate
-        self.model = mesonet_classifiers.MesoInception4(learning_rate=self.lr).model
-
-        # Freeze the convolutional layers.
-        for layer in self.model.layers[:self.FREEZE_BOUND]:
-            layer.trainable = False
-
-        # Add the new flat layers, ignoring the original layers.
-        y = self.model.layers[self.FREEZE_BOUND - 1].output
-        y = Flatten()(y)
-        y = Dropout(0.5)(y)
-        y = Dense(16)(y)
-        y = LeakyReLU(alpha=0.1)(y)
-        y = Dropout(0.5)(y)
-        y = Dense(16)(y)
-        y = LeakyReLU(alpha=0.1)(y)
-        y = Dropout(0.5)(y)
-        y = Dense(16)(y)
-        y = LeakyReLU(alpha=0.1)(y)
-        y = Dropout(0.5)(y)
-        y = Dense(1, activation = 'sigmoid', name='prediction')(y)
-
-        # Recreate the model.
-        x = self.model.input
-        self.model = Model(inputs=x, outputs=y)
-        self.optimizer = Adam(lr=learning_rate)
-        self.model.compile(optimizer=self.optimizer,
-                           loss='mean_squared_error',
-                           metrics=['accuracy'])
-
-    def load_transfer(self, path):
-        """
-        Loads weights from a MesoInception-4 model.
-
-        Args:
-            Path to weights file for a MesoInception-4 model.
-        """
-        meso = MesoInception4()
-        meso.load(path)
-        for i, layer in enumerate(self.model.layers[:self.FREEZE_BOUND]):
-            weights = layer.get_weights()
-            self.model.layers[i].set_weights(weights)
-        self.reset_classification()
-
-    def reset_classification(self):
-        """
-        Reinitializes the weights for the classification layers.
-        """
-        for layer in self.model.layers[self.FREEZE_BOUND:]:
-            old_weights = layer.get_weights()
-            if len(old_weights) == 2:
-                weights = glorot_uniform()(old_weights[0].shape).eval(session=K.get_session())
-                bias = zeros()(old_weights[1].shape).eval(session=K.get_session())
-                new_weights = [weights, bias]
-                layer.set_weights(new_weights)
-        self.model.compile(optimizer=self.optimizer,
-                           loss='mean_squared_error',
-                           metrics=['accuracy'])
-
 class Xception(Classifier):
     """
     An Xception model for detecting faces.
@@ -343,6 +275,5 @@ MODEL_MAP = {
     'meso4': Meso4,
     'mesoinception4': MesoInception4,
     'mesoinc4frozen16': MesoInc4Frozen16,
-    'mesoinc4frozen48': MesoInc4Frozen48,
     'xception': Xception
 }

@@ -274,14 +274,13 @@ if __name__ == '__main__':
             exit(2)
         if transfer:
             if not mtype in ('mesoinc4frozen16', 'mesoinc4frozen48'):
-                print('Can only transfer to a "mesoinc4frozen16" or "mesoinc4frozen48" model',
+                print('Can only transfer to a "mesoinc4frozen16" model',
                       file=stderr)
                 exit(2)
             if weights_path is None:
                 print('Please specify a weights_path for transferring',
                       file=stderr)
                 exit(2)
-
         if gpu_frac < 0 or gpu_frac > 1:
             print('gpu-fraction must be between 0.0 and 1.0', file=stderr)
             exit(2)
