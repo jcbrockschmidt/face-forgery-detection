@@ -63,25 +63,27 @@ def create_data_generator(data_dir, other_classes, batch_size):
 
 def tpr_pred(y_true, y_pred):
     """
-    Custom Keras metrics that calculates the true positive rate / sensitivity.
+    Custom Keras metrics for the true positive rate / sensitivity.
 
     Returns:
         TP / (TP + FN)
     """
-    neg_y_pred = 1 - y_pred
-    tp = K.sum(y_true * y_pred)
+    y_pred_round = K.round(y_pred)
+    neg_y_pred = 1 - y_pred_round
+    tp = K.sum(y_true * y_pred_round)
     fn = K.sum(y_true * neg_y_pred)
     return tp / (tp + fn + K.epsilon())
 
 def tnr_pred(y_true, y_pred):
     """
-    Custom Keras metrics that calculates what true negative rate / specificity.
+    Custom Keras metrics for the true negative rate / specificity.
 
     Returns:
         TN / (TN + FP)
     """
+    y_pred_round = K.round(y_pred)
     neg_y_true = 1 - y_true
-    neg_y_pred = 1 - y_pred
+    neg_y_pred = 1 - y_pred_round
     tn = K.sum(neg_y_true * neg_y_pred)
-    fp = K.sum(neg_y_true * y_pred)
+    fp = K.sum(neg_y_true * y_pred_round)
     return tn / (tn + fp + K.epsilon())
