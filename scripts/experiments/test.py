@@ -60,7 +60,7 @@ def main(data_dir, other_classes, weights_path, mtype,
 
     # Create data generators.
     print('\nLoading testing data from "{}"...'.format(data_dir))
-    test_generator, _ = create_data_generator(data_dir, other_classes, batch_size)
+    test_generator, _ = create_data_generator(data_dir, other_classes, batch_size, class_mode)
 
     # Create model.
     model = MODEL_MAP[mtype]()
