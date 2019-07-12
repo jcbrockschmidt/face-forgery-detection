@@ -6,6 +6,8 @@ from keras.models import Model as Model
 from keras.optimizers import Adam
 import MesoNet.classifiers as mesonet_classifiers
 
+CLASS_MODES = {'binary', 'categorical'}
+
 class Classifier:
     """
     Interface for face classifiers.

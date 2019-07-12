@@ -24,13 +24,15 @@ import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
 from sys import stderr
 
-from classifiers import MODEL_MAP
+from classifiers import CLASS_MODES, MODEL_MAP
 from utils import create_data_generator, tnr_pred, tpr_pred
 
 # Silence Tensorflow warnings.
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
-def main(data_dir, other_classes, weights_path, mtype, batch_size=16):
+def main(data_dir, other_classes, weights_path, mtype,
+         class_mode='binary',
+         batch_size=16):
     """
     Tests a model.
 
@@ -39,6 +41,7 @@ def main(data_dir, other_classes, weights_path, mtype, batch_size=16):
             and `other_class`.
         other_classes: Collection of classes other than "real" to test on.
         weights_path: Path to HDF5 weights file for the model.
+        class_mode: See `keras.preprocessing.image.ImageDataGenerator.flow_from_directory`.
         batch_size: Number of images to process at a time.
     """
     # Make sure classes exist
@@ -96,6 +99,9 @@ if __name__ == '__main__':
                             help='HDF5 weight file to initialize model with')
         parser.add_argument('-m', '--mtype', type=str, required=True, nargs=1,
                             help='model type, either {}'.format(models_str))
+        parser.add_argument('-cm', '--class-mode', dest='class_mode', type=str,
+                            required=False, nargs=1, default=['binary'],
+                            help='type of "binary" or "categorical"')
         parser.add_argument('-b', '--batch-size', metavar='batch_size', type=int,
                             required=False, nargs=1, default=[16],
                             help='number of images to read at a time')
@@ -109,6 +115,7 @@ if __name__ == '__main__':
         other_classes = args.other_classes
         weights_path = args.weights[0]
         mtype = args.mtype[0]
+        class_mode = args.class_mode[0].lower()
         batch_size = args.batch_size[0]
         gpu_frac = args.gpu_fraction[0]
 
@@ -129,7 +136,9 @@ if __name__ == '__main__':
         sess = tf.Session(config=config)
         set_session(sess)
 
-        main(data_dir, other_classes, weights_path, mtype, batch_size=batch_size)
+        main(data_dir, other_classes, weights_path, mtype,
+             batch_size=batch_size,
+             class_mode=class_mode)
 
     except KeyboardInterrupt:
         print('Program terminated prematurely')

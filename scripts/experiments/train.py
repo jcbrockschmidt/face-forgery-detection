@@ -35,7 +35,7 @@ import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
 from sys import stderr
 
-from classifiers import MODEL_MAP
+from classifiers import CLASS_MODES, MODEL_MAP
 from utils import create_data_generator
 
 # Silence Tensorflow warnings.
@@ -109,8 +109,12 @@ class CustomCallback(Callback):
             print('Saving weights to "{}"...'.format(check_path))
             self.model.save_weights(check_path)
 
-def main(data_dir, save_dir, other_classes, mtype, weights_path=None,
-         epoch=1, transfer=False, batch_size=16):
+def main(data_dir, save_dir, other_classes, mtype,
+         class_mode='binary',
+         weights_path=None,
+         epoch=1,
+         transfer=False,
+         batch_size=16):
     """
     Trains a model.
 
@@ -118,8 +122,9 @@ def main(data_dir, save_dir, other_classes, mtype, weights_path=None,
         data_dir: Directory containing a "train" and "val" directory,
             each with a directory for the "real" and `other_class` classes.
         save_dir: Directory to save checkpoints and CSV file with loss and accuracy.
-        mtype: Model type.  Should be "meso1", "meso4", "mesoinception4", or "mesoinc4frozen16"
         other_classes: Other classes to train on (wherein the default class is "real").
+        mtype: Model type.  Should be "meso1", "meso4", "mesoinception4", or "mesoinc4frozen16"
+        class_mode: See `keras.preprocessing.image.ImageDataGenerator.flow_from_directory`.
         weights_path: Path to HDF5 weights file to load model with.
             A new model will be created if set to None.
         epoch: Epoch to start on.
@@ -159,16 +164,24 @@ def main(data_dir, save_dir, other_classes, mtype, weights_path=None,
               file=stderr)
         exit(2)
 
+    # Make sure classification mode is valid.
+    if not class_mode in CLASS_MODES:
+        print('ERROR: "{}" is not a valid classification mode'.format(class_mode),
+              file=stderr)
+        exit(2)
+
     # Create save directory if it does not exist.
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
     # Create data generators.
     print('\nLoading training data from "{}"...'.format(train_dir))
-    train_generator, class_weight = create_data_generator(train_dir, other_classes, batch_size)
+    train_generator, class_weight = create_data_generator(
+        train_dir, other_classes, batch_size, class_mode)
 
     print('\nLoading validation data from "{}"...'.format(valid_dir))
-    valid_generator, _ = create_data_generator(valid_dir, other_classes, batch_size)
+    valid_generator, _ = create_data_generator(
+        valid_dir, other_classes, batch_size, class_mode)
 
     # Create model.
     model = MODEL_MAP[mtype]()
@@ -181,7 +194,8 @@ def main(data_dir, save_dir, other_classes, mtype, weights_path=None,
 
     # Train model.
     classes_str = ', '.join(other_classes)
-    print('\nTraining {} model on classes {}...\n'.format(mtype.upper(), classes_str.upper()))
+    print('\nTraining {} model as a {} classifier on classes {}...\n'.format(
+        mtype.upper(), class_mode, classes_str.upper()))
     callback = CustomCallback(save_dir, save_epoch=SAVE_EPOCH)
     model.fit_with_generator(
         train_generator, len(train_generator),
@@ -216,6 +230,9 @@ if __name__ == '__main__':
                             help='classes other than "real" to train on')
         parser.add_argument('-m', '--mtype', type=str, required=True, nargs=1,
                             help='model type, either {}'.format(models_str))
+        parser.add_argument('-cm', '--class-mode', dest='class_mode', type=str,
+                            required=False, nargs=1, default=['binary'],
+                            help='type of "binary" or "categorical"')
         parser.add_argument('-w', '--weights', type=str, required=False, nargs=1,
                             default=[None],
                             help='HDF5 weight file to initialize model with')
@@ -238,6 +255,7 @@ if __name__ == '__main__':
         save_dir = args.save_dir[0]
         other_classes = args.other_classes
         mtype = args.mtype[0].lower()
+        class_mode = args.class_mode[0].lower()
         weights_path = args.weights[0]
         epoch = args.epoch[0]
         transfer = args.transfer
@@ -275,6 +293,7 @@ if __name__ == '__main__':
         set_session(sess)
 
         main(data_dir, save_dir, other_classes, mtype,
+             class_mode=class_mode,
              weights_path=weights_path,
              epoch=epoch,
              transfer=transfer,
