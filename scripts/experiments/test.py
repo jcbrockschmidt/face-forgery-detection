@@ -25,7 +25,7 @@ from tensorflow.keras.callbacks import Callback
 from sys import stderr
 
 from classifiers import CLASS_MODES, MODEL_MAP
-from utils import create_data_generator, tnr_pred, tpr_pred
+from utils import cat_acc_pred, create_data_generator, tnr_cat_pred, tnr_pred, tpr_cat_pred, tpr_pred
 
 # Silence Tensorflow warnings.
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
@@ -63,23 +63,32 @@ def main(data_dir, other_classes, weights_path, mtype,
     test_generator, _ = create_data_generator(data_dir, other_classes, batch_size, class_mode)
 
     # Create model.
-    # Create model.
     if class_mode == 'categorical':
         classes = len(other_classes) + 1
         model = MODEL_MAP[mtype](class_mode=class_mode, classes=classes)
+        model.load(weights_path)
     else:
         model = MODEL_MAP[mtype]()
-    model.load(weights_path)
-    model.set_metrics(['acc', tpr_pred, tnr_pred])
+        model.load(weights_path)
 
     # Test model.
     classes_str = ', '.join(other_classes)
     print('\nTesting {} model on class {}...\n'.format(mtype.upper(), classes_str.upper()))
-    mse, acc, tpr, tnr = model.evaluate_with_generator(test_generator)
-    print('mse:\t{}'.format(mse))
-    print('acc:\t{}'.format(acc))
-    print('tpr:\t{}'.format(tpr))
-    print('tnr:\t{}'.format(tnr))
+    if class_mode == 'categorical':
+        model.set_metrics(['acc', cat_acc_pred, tpr_cat_pred, tnr_cat_pred])
+        mse, acc, bacc, tpr, tnr = model.evaluate_with_generator(test_generator)
+        print('mse:\t{}'.format(mse))
+        print('acc:\t{}'.format(acc))  # Categorical accuracy.
+        print('bacc:\t{}'.format(bacc))  # Binary accuracy.
+        print('tpr:\t{}'.format(tpr))
+        print('tnr:\t{}'.format(tnr))
+    else:
+        model.set_metrics(['acc', tpr_pred, tnr_pred])
+        mse, acc, tpr, tnr = model.evaluate_with_generator(test_generator)
+        print('mse:\t{}'.format(mse))
+        print('acc:\t{}'.format(acc))
+        print('tpr:\t{}'.format(tpr))
+        print('tnr:\t{}'.format(tnr))
 
 
 if __name__ == '__main__':

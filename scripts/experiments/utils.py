@@ -63,7 +63,8 @@ def create_data_generator(data_dir, other_classes, batch_size, class_mode):
 
 def tpr_pred(y_true, y_pred):
     """
-    Custom Keras metrics for the true positive rate / sensitivity.
+    Keras metric for the true positive rate / sensitivity for a
+    binary classifier.
 
     Returns:
         TP / (TP + FN)
@@ -76,7 +77,8 @@ def tpr_pred(y_true, y_pred):
 
 def tnr_pred(y_true, y_pred):
     """
-    Custom Keras metrics for the true negative rate / specificity.
+    Keras metric for the true negative rate / specificity for a
+    binary classifier.
 
     Returns:
         TN / (TN + FP)
@@ -87,3 +89,73 @@ def tnr_pred(y_true, y_pred):
     tn = K.sum(neg_y_true * neg_y_pred)
     fp = K.sum(neg_y_true * y_pred_round)
     return tn / (tn + fp + K.epsilon())
+
+def tpr_cat_pred(y_true, y_pred):
+    """
+    Keras metrics for the true positive rate / sensitivity for a categorical
+    classifier. The last category/class is considered the real/positive class.
+    All other classes are grouped into the same category of fake/negative
+
+    Returns:
+        TP / (TP + FN)
+    """
+    class_true = K.argmax(y_true, axis=-1)
+    class_pred = K.argmax(y_pred, axis=-1)
+
+    real_class = K.int_shape(y_pred)[1] - 1
+    real_true = K.cast(K.equal(class_true, real_class), K.floatx())
+    real_pred = K.cast(K.equal(class_pred, real_class), K.floatx())
+    neg_real_pred = 1 - real_pred
+
+    tp = K.sum(real_true * real_pred)
+    fn = K.sum(real_true * neg_real_pred)
+
+    return tp / (tp + fn + K.epsilon())
+
+def tnr_cat_pred(y_true, y_pred):
+    """
+    Keras metrics for the true negative rate / specificity for a categorical
+    classifier. The last category/class is considered the real/positive class.
+    All other classes are grouped into the same category of fake/negative.
+
+    Returns:
+        TN / (TN + FP)
+    """
+    class_true = K.argmax(y_true, axis=-1)
+    class_pred = K.argmax(y_pred, axis=-1)
+
+    real_class = K.int_shape(y_pred)[1] - 1
+    real_true = K.cast(K.equal(class_true, real_class), K.floatx())
+    real_pred = K.cast(K.equal(class_pred, real_class), K.floatx())
+    neg_real_true = 1 - real_true
+    neg_real_pred = 1 - real_pred
+
+    tn = K.sum(neg_real_true * neg_real_pred)
+    fp = K.sum(neg_real_true * real_pred)
+
+    return tn / (tn + fp + K.epsilon())
+
+def cat_acc_pred(y_true, y_pred):
+    """
+    Keras metrics for the accuracy of a categorical classifier.  The last
+    category/class is considered the real/positive class.  All other classes
+    are grouped into the same category of fake/negative.
+
+    Returns:
+        (TP + TN) / (TP + TN + FP + FN)
+    """
+    class_true = K.argmax(y_true, axis=-1)
+    class_pred = K.argmax(y_pred, axis=-1)
+
+    real_class = K.int_shape(y_pred)[1] - 1
+    real_true = K.cast(K.equal(class_true, real_class), K.floatx())
+    real_pred = K.cast(K.equal(class_pred, real_class), K.floatx())
+    neg_real_true = 1 - real_true
+    neg_real_pred = 1 - real_pred
+
+    tp = K.sum(real_true * real_pred)
+    tn = K.sum(neg_real_true * neg_real_pred)
+    fp = K.sum(neg_real_true * real_pred)
+    fn = K.sum(real_true * neg_real_pred)
+
+    return (tp + tn) / (tp + tn + fp + fn)
