@@ -35,7 +35,7 @@ import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
 from sys import stderr
 
-from classifiers import CLASS_MODES, MODEL_MAP
+from classifiers import CLASS_MODES, MODEL_MAP, TRANSFER_MODELS
 from utils import create_data_generator
 
 # Silence Tensorflow warnings.
@@ -245,7 +245,7 @@ if __name__ == '__main__':
                             help='epoch to start on')
         parser.add_argument('-t', '--transfer',
                             action='store_const', const=True, default=False,
-                            help='transfer a mesoinception4 to a mesoinc4frozen16')
+                            help='transfer the model to a compatible architecture')
         parser.add_argument('-b', '--batch-size', metavar='batch_size', type=int,
                             required=False, nargs=1, default=[16],
                             help='number of images to read at a time')
@@ -277,8 +277,15 @@ if __name__ == '__main__':
             print('epoch must be 0 or greater', file=stderr)
             exit(2)
         if transfer:
-            if not mtype in ('mesoinc4frozen16', 'mesoinc4frozen48'):
-                print('Can only transfer to a "mesoinc4frozen16" model',
+            if not mtype in TRANSFER_MODELS:
+                trans_list = ['"{}"'.format(model) for model in TRANSFER_MODELS]
+                trans_list.sort()
+                if len(trans_list) > 1:
+                    trans_str = '{} or {}'.format(
+                        ', '.join(trans_list[:-1]), trans_list[-1])
+                else:
+                    trans_str = trans_list[0]
+                print('Can only transfer to a {} model'.format(trans_str),
                       file=stderr)
                 exit(2)
             if weights_path is None:

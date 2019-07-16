@@ -290,10 +290,50 @@ class Xception(Classifier):
                            loss='mean_squared_error',
                            metrics=['accuracy'])
 
+class XceptionFrozen(Xception):
+    """
+    An Xception model with the convolutional layers untrainable.
+    """
+    def __init__(self, learning_rate=0.001):
+        super().__init__(learning_rate=learning_rate)
+        for layer in self.model.layers[:-1]:
+            layer.trainable = False
+        self.model.compile(optimizer=self.optimizer,
+                           loss='mean_squared_error',
+                           metrics=['accuracy'])
+
+    def load_transfer(self, path):
+        """
+        Loads weights from an Xception model.
+
+        Args:
+            Path to weights file for a Xception model.
+        """
+        self.model.load_weights(path)
+        self.reset_classification()
+
+    def reset_classification(self):
+        """
+        Reinitializes the weights for the classification layer.
+        """
+        layer = self.model.layers[-1]
+        old_weights = layer.get_weights()
+        if len(old_weights) == 2:
+            weights = glorot_uniform()(old_weights[0].shape).eval(session=K.get_session())
+            bias = zeros()(old_weights[1].shape).eval(session=K.get_session())
+            new_weights = [weights, bias]
+            layer.set_weights(new_weights)
+        self.model.compile(optimizer=self.optimizer,
+                           loss='mean_squared_error',
+                           metrics=['accuracy'])
+
 MODEL_MAP = {
     'meso1': Meso1,
     'meso4': Meso4,
     'mesoinception4': MesoInception4,
     'mesoinc4frozen16': MesoInc4Frozen16,
-    'xception': Xception
+    'xception': Xception,
+    'xceptionfrozen': XceptionFrozen
 }
+
+TRANSFER_MODELS = {'mesoinc4frozen16', 'xceptionfrozen'}
