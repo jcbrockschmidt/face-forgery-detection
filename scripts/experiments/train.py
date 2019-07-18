@@ -249,7 +249,7 @@ if __name__ == '__main__':
         parser.add_argument('-b', '--batch-size', metavar='batch_size', type=int,
                             required=False, nargs=1, default=[16],
                             help='number of images to read at a time')
-        parser.add_argument('-g', '--gpu-fraction', metavar='batch_size', type=float,
+        parser.add_argument('-g', '--gpu-fraction', metavar='gpu_fraction', type=float,
                             required=False, nargs=1, default=[1.0],
                             help='maximum fraction of the GPU\'s memory the ' \
                             'model is allowed to use, between 0.0 and 1.0')
