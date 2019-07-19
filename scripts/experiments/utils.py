@@ -2,6 +2,8 @@ import keras.backend as K
 from keras.preprocessing.image import ImageDataGenerator
 import numpy as np
 
+IMG_SIZE = (256, 256)
+
 def create_data_generator(data_dir, other_classes, batch_size, class_mode):
     """
     Creates a 2-class data generator for real and fake face images.
@@ -35,7 +37,7 @@ def create_data_generator(data_dir, other_classes, batch_size, class_mode):
     generator = ImageDataGenerator(rescale=1/255).flow_from_directory(
         data_dir,
         classes=classes,
-        target_size=(256, 256),
+        target_size=IMG_SIZE,
         batch_size=batch_size,
         class_mode=class_mode,
         subset='training')
@@ -60,6 +62,49 @@ def create_data_generator(data_dir, other_classes, batch_size, class_mode):
         weights[i] = 1 / count
 
     return generator, weights
+
+def load_single_class_generators(data_dir, classes, batch_size=16):
+    """
+    Creates a dictionary of data generators for a list of classes.
+
+    Args:
+        data_dir: Directory containing classes.
+        classes: List of classes to make generators for.  Should have
+            corresponding directories within the directory pointed to by
+            `data_dir`.
+        batch_size: Number of images to read at a time.
+
+    Returns:
+        Dictionary mapping class names to data generators.
+    """
+    generators = {}
+    for c in classes:
+        path = os.path.join(data_dir, c)
+        if not os.path.isdir(path):
+            print('ERROR: No directory for class "{}" in "{}"'.format(c, data_dir),
+                  file=stderr)
+            exit(0)
+        gen = ImageDataGenerator(rescale=1/255).flow_from_directory(
+            data_dir,
+            classes=[c],
+            target_size=IMG_SIZE,
+            batch_size=batch_size,
+            class_mode='binary',
+            subset='training')
+
+        # Real images need to be labeled "1" and not "0".
+        if c == 'real':
+            # Modify data labels.
+            new_classes = np.ones(gen.classes.shape, dtype=gen.classes.dtype)
+            gen.classes = np.array(new_classes, dtype=np.int32)
+
+            # Change class-to-index mapping.
+            new_indices_map = {'real' : 1}
+            gen.class_indices = new_indices_map
+
+        generators[c] = gen
+
+    return generators
 
 def tpr_pred(y_true, y_pred):
     """

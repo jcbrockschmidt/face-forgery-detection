@@ -42,54 +42,10 @@ from tensorflow.keras.callbacks import Callback
 from sys import stderr
 
 from classifiers import CLASS_MODES, MODEL_MAP
+from utils import load_single_class_generators
 
 # Silence Tensorflow warnings.
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
-
-IMG_SIZE = (256, 256)
-
-def load_generators(data_dir, classes, batch_size=16):
-    """
-    Creates a dictionary for a set of data generators.
-
-    Args:
-        data_dir: Directory containing classes.
-        classes: List of classes to make generators for.  Should have
-            corresponding directories within the directory pointed to by
-            `data_dir`.
-        batch_size: Number of images to read at a time.
-
-    Returns:
-        Dictionary mapping class names to data generators.
-    """
-    generators = {}
-    for c in classes:
-        path = os.path.join(data_dir, c)
-        if not os.path.isdir(path):
-            print('ERROR: No directory for class "{}" in "{}"'.format(c, data_dir),
-                  file=stderr)
-            exit(0)
-        gen = ImageDataGenerator(rescale=1/255).flow_from_directory(
-            data_dir,
-            classes=[c],
-            target_size=IMG_SIZE,
-            batch_size=batch_size,
-            class_mode='binary',
-            subset='training')
-
-        # Real images need to be labeled "1" and not "0".
-        if c == 'real':
-            # Modify data labels.
-            new_classes = np.ones(gen.classes.shape, dtype=gen.classes.dtype)
-            gen.classes = np.array(new_classes, dtype=np.int32)
-
-            # Change class-to-index mapping.
-            new_indices_map = {'real' : 1}
-            gen.class_indices = new_indices_map
-
-        generators[c] = gen
-
-    return generators
 
 def main(data_dir, models_dir, mtype, output_file, batch_size=16):
     """
@@ -127,7 +83,8 @@ def main(data_dir, models_dir, mtype, output_file, batch_size=16):
 
     # Maps class name to data generator.
     print('\nLoading generators...')
-    generators = load_generators(data_dir, classes, batch_size=batch_size)
+    generators = load_single_class_generators(
+        data_dir, classes, batch_size=batch_size)
 
     mtype_dir = os.path.join(models_dir, mtype.lower())
     if not os.path.isdir(mtype_dir):
