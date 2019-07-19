@@ -7,37 +7,37 @@ Tests a batch of models trained on different compression levels on every
 The parameter `models_dir` should point to a directory that resembles the
 following:
 
-    +---models_dir
-        +---c0
-        |   +---mesoinception4
-        |   |   +---df
-        |   |   |   +---best.hdf5
-        |   |   +---f2f
-        |   |   |   +---best.hdf5
-        |   |   +---fs
-        |   |   |   +---best.hdf5
-        |   |   +---gann
-        |   |   |   +---best.hdf5
-        |   |   +---icf
-        |   |   |   +---best.hdf5
-        |   |   +---x2f
-        |   |       +---best.hdf5
-        |   +---...
-        +---c23
-        |   +---...
-        +---c40
-        |   +---...
-        +---all
-            +---...
+    models_dir
+    ├── all
+    │   ├── mesoinception4
+    │   │   ├── df
+    │   │   │   └── best.hdf5
+    │   │   ├── f2f
+    │   │   │   └── best.hdf5
+    │   │   ├── fs
+    │   │   │   └── best.hdf5
+    │   │   ├── gann
+    │   │   │   └── best.hdf5
+    │   │   ├── icf
+    │   │   │   └── best.hdf5
+    │   │   └── x2f
+    │   │       └── best.hdf5
+    │   └── ...
+    ├── c0
+    │   └── ...
+    ├── c23
+    │   └── ...
+    └── c40
+        └── ...
 
 The headers of the CSV file are:
 
     mtype, comp, class, acc_all, tpr_all, tnr_all, acc_c0, tpr_c0, tnr_c0,
     acc_c23, tpr_c23, tnr_c23, acc_c40, tpr_c40, tnr_c40
 
-where "comp" stands for "compression", "acc" for "accuracy", "tpr" for "true
-positive rate" (true rate of detection for real faces), and "tnr" for "true
-negative rate" (true rate of detection for fake faces).
+where "mtype" stand for "model type", "comp" for "compression", "acc" for
+"accuracy", "tpr" for "true positive rate" (recall for real faces), and "tnr"
+for "true negative rate" (recall for fake faces).
 """
 
 import os
@@ -182,8 +182,6 @@ if __name__ == '__main__':
         #
         #    'model1, model2, model3, or model4'
         #
-        models_str = '"mesoinception4" or "xception"'
-
         parser = argparse.ArgumentParser(
             description='Tests a model')
         parser.add_argument('-d', '--data-dir', dest='data_dir', type=str,
@@ -193,7 +191,7 @@ if __name__ == '__main__':
                             default=[None],
                             help='base directory for models')
         parser.add_argument('-m', '--mtype', type=str, required=True, nargs=1,
-                            help='model type, either {}'.format(models_str))
+                            help='model type')
         parser.add_argument('-o', '--output', dest='output_file', type=str,
                             required=True, nargs=1,
                             help='path to CSV to write or append data to')
