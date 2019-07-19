@@ -49,11 +49,10 @@ tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 def main(data_dir, models_dir, mtype, output_file, batch_size=16):
     """
-    Tests models on every available compression level.
+    Tests transferred models on every class type.
 
     Args:
-        data_dir: Directory containing test classes, including "real"
-            and `other_class`.
+        data_dir: Directory containing directories for all classes.
         models_dir: Models directory as described in this script's docstring.
         mtype: Architecture of models to test.
         output_file: CSV file to output to.
@@ -65,7 +64,7 @@ def main(data_dir, models_dir, mtype, output_file, batch_size=16):
               file=stderr)
         exit(2)
 
-    print('Testing compression levels for {}'.format(mtype.upper()))
+    print('Testing transferred models for {}'.format(mtype.upper()))
     print('Loading models from "{}"'.format(models_dir))
     print('Outputting to "{}"'.format(output_file))
     print('Batch size: {}'.format(batch_size))
@@ -143,7 +142,7 @@ if __name__ == '__main__':
             description='Tests a model')
         parser.add_argument('-d', '--data-dir', dest='data_dir', type=str,
                             required=True, nargs=1,
-                            help='directory containing directories "all", "c0", "c23", and "c40"')
+                            help='directory described in script description')
         parser.add_argument('-md', '--models_dir', type=str, required=True, nargs=1,
                             default=[None],
                             help='base directory for models')
