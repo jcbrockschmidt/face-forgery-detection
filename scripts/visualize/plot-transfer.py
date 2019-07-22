@@ -7,9 +7,7 @@ Creates a heatmap of the accuracies for each model against the class transferred
 
 import argparse
 import csv
-from matplotlib.lines import Line2D
 import matplotlib.pyplot as plt
-from matplotlib.ticker import FormatStrFormatter, FuncFormatter, MaxNLocator
 import numpy as np
 import os
 from sys import stderr
@@ -23,7 +21,7 @@ HEADERS = (
 
 HINDEX = {v: i for i, v in enumerate(HEADERS)}
 
-CLASSES = ('x2f', 'gann', 'icf', 'fs', 'df', 'f2f')
+CLASSES = ('x2f', 'gann', 'icf', 'fs', 'f2f', 'df')
 
 def load_model_data(csv_path):
     """
@@ -81,7 +79,6 @@ def plot_heatmap(models):
                 z.append(acc)
 
     z = np.reshape(np.array(z), (len(CLASSES), len(CLASSES)))
-    #im = ax.pcolormesh(xs, ys, z, cmap=plt.get_cmap('Purples'))
     heatmap = ax.pcolor(z, cmap=plt.get_cmap('Purples'))
     fig.colorbar(heatmap)
 
@@ -105,7 +102,7 @@ def plot_heatmap(models):
 
 def main(csv_path):
     """
-    Creates and displays various plots using the supplied experimentation data.
+    Creates and displays heatmap using the supplied experimentation data.
     """
     models = load_model_data(csv_path)
 
