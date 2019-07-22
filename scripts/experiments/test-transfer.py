@@ -26,7 +26,8 @@ The headers of the CSV file are:
 where "mtype" stand for "model type", "orig_class" for "original class",
 "trans_class" for "transfer class" (the class the model was transferred to),
 "df" for "Deepfakes", "f2f" for "Face2Face", "fs" for "FaceSwap", "icf" for
-"ICface", and "x2f" for "X2Face".
+"ICface", and "x2f" for "X2Face". The value in each class-labeled column is the
+recall for the transferred model for that class.
 """
 
 import os
@@ -52,7 +53,8 @@ def main(data_dir, models_dir, mtype, output_file, batch_size=16):
     Tests transferred models on every class type.
 
     Args:
-        data_dir: Directory containing directories for all classes.
+        data_dir: Directory containing directories with test images for all
+            classes.
         models_dir: Models directory as described in this script's docstring.
         mtype: Architecture of models to test.
         output_file: CSV file to output to.
@@ -80,7 +82,7 @@ def main(data_dir, models_dir, mtype, output_file, batch_size=16):
 
     classes = ('real', 'df', 'f2f', 'fs', 'gann', 'icf', 'x2f')
 
-    # Maps class name to data generator.
+    # Maps a class' name to a data generator.
     print('\nLoading generators...')
     generators = load_single_class_generators(
         data_dir, classes, batch_size=batch_size)
@@ -139,7 +141,7 @@ if __name__ == '__main__':
         #    'model1, model2, model3, or model4'
         #
         parser = argparse.ArgumentParser(
-            description='Tests a model')
+            description='Tests a batch of transferred models on all class types')
         parser.add_argument('-d', '--data-dir', dest='data_dir', type=str,
                             required=True, nargs=1,
                             help='directory described in script description')
