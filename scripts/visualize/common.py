@@ -8,8 +8,9 @@ CLASS_TO_COLOR = {
 }
 
 CLASS_TO_LABEL = {
-    'f2f'  : 'Face2Face',
+    'real' : 'Real',
     'df'   : 'Deepfakes',
+    'f2f'  : 'Face2Face',
     'fs'   : 'FaceSwap',
     'icf'  : 'ICface',
     'gann' : 'GANnotation',
