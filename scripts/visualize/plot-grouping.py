@@ -7,6 +7,7 @@ Creates a heatmap of the accuracies for each model against all classes.
 
 import argparse
 import csv
+from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -58,42 +59,47 @@ def plot_heatmap(models):
     """
     fig, ax = plt.subplots()
     ax.set_xlabel('Class Tested On')
-    ax.set_ylabel('Classes Trained On')
+    ax.set_ylabel('Models')
 
     z = []
     ylabels = []
     for m in models:
-        # Build labels.
-        ylabels = []
-        ylabel_to_key = {}
+        # Build training masks.  These mark which class was trained by indices
+        # for each model.  Contains tuples with first index as the mask and
+        # second as the class name.
+        train_masks = []
         for name in models[m]:
-            classes = name.split(',')
-            labels = [CLASS_TO_LABEL[c] for c in classes]
-            if len(labels) == len(CLASSES) - 1:
-                label = 'All'
-            else:
-                label = ', '.join(labels)
-            ylabels.append(label)
-            ylabel_to_key[label] = name
-        ylabels.sort()
-        ylabels.reverse()
+            classes = name.split(',') + ['real']
+            mask = []
+            for c in CLASSES:
+                mask.append(c in classes)
+            train_masks.append((mask, name))
+        train_masks.sort()
 
-        for label in ylabels:
-            # Get accuracies.
-            classes_str = ylabel_to_key[label]
-            model = models[m][classes_str]
+        # Plot accuracies.
+        for mask, name in train_masks:
+            model = models[m][name]
             row = []
             for test_class in CLASSES:
                 if test_class not in model:
-                    acc = 0
-                else:
-                    acc = float(model[test_class])
+                    print('ERROR: Class "{}" not tested for model "{}"'.format(test_class, name),
+                          file=stderr)
+                    exit(1)
+                acc = float(model[test_class])
                 row.append(acc)
             z.append(row)
 
     z = np.array(z)
     heatmap = ax.pcolor(z, cmap=plt.get_cmap('Purples'))
     fig.colorbar(heatmap)
+
+    # Draw borders around classes that were trained on for each model.
+    mask = [mask for mask, _ in train_masks]
+    for y in range(z.shape[0]):
+        for x in range(z.shape[1]):
+            if mask[y][x]:
+                rect = Rectangle((x, y), 1, 1, linewidth=2, edgecolor=(0, 0, 0), facecolor='none')
+                ax.add_patch(rect)
 
     # Add class labels.
     xlabels = [CLASS_TO_LABEL[c] for c in CLASSES]
@@ -116,6 +122,11 @@ def plot_heatmap(models):
             text_color = (1, 1, 1)
         x, y = p.vertices[:-1, :].mean(0)
         ax.text(x + 0.1, y, '%.3f' % acc, ha='center', color=text_color)
+
+    # Remove ticks and plot outline.
+    ax.tick_params(top=False, bottom=False, left=False, right=False)
+    for spine in fig.gca().spines.values():
+        spine.set_visible(False)
 
     return fig, ax
 
