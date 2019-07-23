@@ -10,12 +10,19 @@ following:
     models_dir
     ├── mesoinception4
     │   ├── df-to-f2f
+    │   │   └── best.hdf5
     │   ├── df-to-fs
+    │   │   └── best.hdf5
     │   ├── df-to-gann
+    │   │   └── best.hdf5
     │   ├── df-to-icf
+    │   │   └── best.hdf5
     │   ├── df-to-x2f
+    │   │   └── best.hdf5
     │   ├── f2f-to-df
+    │   │   └── best.hdf5
     │   ├── f2f-to-fs
+    │   │   └── best.hdf5
     │   └── ...
     └── ...
 

@@ -11,11 +11,17 @@ following:
     models_dir
     ├── mesoinception4
     │   ├── f2f-df
+    │   │   └── best.hdf5
     │   ├── f2f-df-fs
+    │   │   └── best.hdf5
     │   ├── f2f-fs
+    │   │   └── best.hdf5
     │   ├── gann-icf-x2f
+    │   │   └── best.hdf5
     │   ├── gann-x2f
+    │   │   └── best.hdf5
     │   ├── icf-gann
+    │   │   └── best.hdf5
     │   └── ...
     └── ...
 
