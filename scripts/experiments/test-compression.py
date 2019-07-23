@@ -178,12 +178,8 @@ def main(data_dir, models_dir, mtype, output_file, batch_size=16):
 
 if __name__ == '__main__':
     try:
-        # Construct a string listing all model types in the format
-        #
-        #    'model1, model2, model3, or model4'
-        #
-        parser = argparse.ArgumentParser(
-            description='Tests a model')
+        desc = 'Tests a batch of models trained on different compression levels'
+        parser = argparse.ArgumentParser(description=desc)
         parser.add_argument('-d', '--data-dir', dest='data_dir', type=str,
                             required=True, nargs=1,
                             help='directory containing directories "all", "c0", "c23", and "c40"')

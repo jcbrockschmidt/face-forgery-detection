@@ -132,12 +132,8 @@ def main(data_dir, models_dir, mtype, output_file, batch_size=16):
 
 if __name__ == '__main__':
     try:
-        # Construct a string listing all model types in the format
-        #
-        #    'model1, model2, model3, or model4'
-        #
-        parser = argparse.ArgumentParser(description='Tests a batch of models ' \
-                                         'trained on two or more class types')
+        desc = 'Tests a batch of models trained on two or more class types'
+        parser = argparse.ArgumentParser(description=desc)
         parser.add_argument('-d', '--data-dir', dest='data_dir', type=str,
                             required=True, nargs=1,
                             help='directory described in script description')
