@@ -98,6 +98,11 @@ def plot_heatmap(models):
         x, y = p.vertices[:-1, :].mean(0)
         ax.text(x + 0.1, y, '%.3f' % acc, ha='center', color=(1, 1, 1))
 
+    # Remove ticks and plot outline.
+    ax.tick_params(top=False, bottom=False, left=False, right=False)
+    for spine in fig.gca().spines.values():
+        spine.set_visible(False)
+
     return fig, ax
 
 def main(csv_path):
