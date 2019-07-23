@@ -140,7 +140,8 @@ def main(csv_path):
     plt.show()
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Tests a model')
+    desc = 'Plots data for binary classifiers trained on multiple models'
+    parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('input', type=str, nargs=1,
                         help='path to CSV file with transfer learning data')
     args = parser.parse_args()
