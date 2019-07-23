@@ -56,7 +56,8 @@ CLASSES = ('real', 'df', 'f2f', 'fs', 'gann', 'icf', 'x2f')
 
 def main(data_dir, models_dir, mtype, output_file, batch_size=16):
     """
-    Tests transferred models on every class type.
+    Tests models trained on two or more non-real class types against all class
+    types.
 
     Args:
         data_dir: Directory containing directories with test images for all
