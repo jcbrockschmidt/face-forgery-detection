@@ -59,6 +59,7 @@ from utils import cat_acc_pred, create_data_generator
 
 # Silence Tensorflow warnings.
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+
 HEADERS = ('mtype', 'classes', 'bin_acc', 'cat_acc', 'cat_bin_acc')
 
 def test_binary(mtype, data_dir, weights_path, classes, batch_size):
@@ -194,10 +195,10 @@ if __name__ == '__main__':
         parser = argparse.ArgumentParser(description=desc)
         parser.add_argument('-d', '--data-dir', dest='data_dir', type=str,
                             required=True, nargs=1,
-                            help='directory described in script description')
+                            help='directory containing subdirectories for each class')
         parser.add_argument('-md', '--models_dir', type=str, required=True, nargs=1,
                             default=[None],
-                            help='base directory for models')
+                            help='directory described in script description')
         parser.add_argument('-m', '--mtype', type=str, required=True, nargs=1,
                             help='model type')
         parser.add_argument('-o', '--output', dest='output_file', type=str,
