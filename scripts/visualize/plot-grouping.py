@@ -74,10 +74,20 @@ def plot_heatmap(models):
             for c in CLASSES:
                 mask.append(c in classes)
             train_masks.append((mask, name))
-        train_masks.sort()
 
-        # Plot accuracies.
-        for mask, name in train_masks:
+        # Seperate masks by number of classes.
+        groups = [[] for i in range(len(CLASSES))]
+        for tm in train_masks:
+            trues = tm[0].count(True)
+            groups[trues - 1].append(tm)
+        sorted_train_masks = []
+        for group in reversed(groups):
+            for train_mask in sorted(group):
+                sorted_train_masks.append(train_mask)
+
+        # Plot accuracies.  Plot in order of number of classes, with the least
+        # amount of classes at the top and the most at the bottom.
+        for mask, name in sorted_train_masks:
             model = models[m][name]
             row = []
             for test_class in CLASSES:
@@ -94,11 +104,16 @@ def plot_heatmap(models):
     fig.colorbar(heatmap)
 
     # Draw borders around classes that were trained on for each model.
-    mask = [mask for mask, _ in train_masks]
+    mask = [mask for mask, _ in sorted_train_masks]
     for y in range(z.shape[0]):
         for x in range(z.shape[1]):
             if mask[y][x]:
-                rect = Rectangle((x, y), 1, 1, linewidth=2, edgecolor=(0, 0, 0), facecolor='none')
+                SHIFT = 0.12
+                rx = x + SHIFT
+                ry = y + SHIFT
+                w = 1 - SHIFT * 2
+                h = 1 - SHIFT * 2
+                rect = Rectangle((rx, ry), w, h, linewidth=2, edgecolor=(0, 0, 0), facecolor='none')
                 ax.add_patch(rect)
 
     # Add class labels.
