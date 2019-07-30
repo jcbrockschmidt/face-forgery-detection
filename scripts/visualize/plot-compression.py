@@ -26,7 +26,7 @@ HEADERS = (
 
 HINDEX = {v: i for i, v in enumerate(HEADERS)}
 
-CLASSES = ('f2f', 'df', 'fs', 'icf', 'gann', 'x2f')
+CLASSES = ('df', 'f2f', 'fs', 'icf', 'gann', 'x2f')
 
 COMP_TO_LINESTYLE = {
     'c0'  : '--',
@@ -40,6 +40,13 @@ COMP_TO_LABEL = {
     'c23' : 'Trained on visibly lossless',
     'c40' : 'Trained on lossy',
     'all' : 'Trained on all'
+}
+
+COMP_TO_LABEL_HEAT = {
+    'c0'  : 'Lossless',
+    'c23' : 'Visibly lossless',
+    'c40' : 'Lossy',
+    'all' : 'All'
 }
 
 COMP_LEVELS = ('c0', 'c23', 'c40')
@@ -98,7 +105,7 @@ def load_model_data(csv_path):
 
     return models
 
-def plot_accuracy(models):
+def plot_accuracy_basic(models):
     """
     Plots accuracies for each compression level.
 
@@ -152,7 +159,98 @@ def plot_accuracy(models):
 
     return fig, ax
 
-def plot_tpr_vs_tnr(models):
+
+def plot_accuracy_heatmap(models):
+    """
+    Plots accuracies for each class against each compression level as
+    heatmaps. A single plot is created with subplots for each class.
+
+    Args:
+        models: A dictionary returned by `load_model_data`.
+
+    Returns:
+        Matplotlib figure.
+    """
+    fig = plt.figure()
+    old_font_size = plt.rcParams["font.size"]
+    plt.rcParams["font.size"] = 7
+
+    mtype = list(models.keys())[0]
+    comps = list(COMP_LEVELS) + ['all']
+
+    # Get a list of all classes we have data for.
+    valid_classes = []
+    for c in CLASSES:
+        if c not in models[mtype]:
+            print('WARNING: Class "{}" not tested for model "{}"'.format(test_class, name),
+                  file=stderr)
+            continue
+        valid_classes.append(c)
+
+    for i, class_type in enumerate(valid_classes):
+        ax = fig.add_subplot(1, len(valid_classes), i + 1)
+        ax.set_title(CLASS_TO_LABEL[class_type])
+
+        model = models[mtype][class_type]
+        z = []
+        for train_comp in comps:
+            res = model[train_comp]
+            row = []
+            for test_comp in COMP_LEVELS:
+                row.append(float(res[test_comp]['acc']))
+            z.append(row)
+
+        z = np.array(z)
+        heatmap = ax.pcolor(z, cmap=plt.get_cmap('Purples'), vmin=0.0, vmax=1.0)
+
+        # Only add colorbar on far right.
+        if i == len(valid_classes) - 1:
+            fig.colorbar(heatmap)
+
+        # Add testing labels.
+        test_labels = [COMP_TO_LABEL_HEAT[c] for c in COMP_LEVELS]
+        ax.set_xticklabels(test_labels, rotation=90, ha='right')
+        ax.set_xticks(np.arange(0, z.shape[1]) + 0.5)
+
+        # Only add training labels on far left.
+        if i == 0:
+            train_labels = [COMP_TO_LABEL_HEAT[c] for c in comps]
+            ax.set_yticks(np.arange(0, z.shape[0]) + 0.5)
+            ax.set_yticklabels(train_labels)
+            ax.set_ylabel('Compression level trained on')
+        else:
+            ax.tick_params(axis='y',
+                           which='both',
+                           right=False,
+                           left=False,
+                           labelleft=False)
+
+        # Write accuracies in each cell.
+        heatmap.update_scalarmappable()
+        paths = heatmap.get_paths()
+        colors = heatmap.get_facecolors()
+        for p, color, acc in zip(paths, colors, heatmap.get_array()):
+            if np.all(color[:3] > 0.5):
+                text_color = (0, 0, 0)
+            else:
+                text_color = (1, 1, 1)
+            x, y = p.vertices[:-1, :].mean(0)
+            ax.text(x + 0.1, y, '%.3f' % acc, ha='center', color=text_color)
+
+        # Remove ticks and plot outline.
+        ax.tick_params(top=False, bottom=False, left=False, right=False)
+        for spine in fig.gca().spines.values():
+            spine.set_visible(False)
+
+    # Make more room for labels.
+    fig.subplots_adjust(left=0.2, bottom=0.2)
+
+    # Return font size to normal.
+    plt.rcParams["font.size"] = old_font_size
+
+    return fig
+
+def plot_tpr_vs_tnr_basic(models):
     """
     Plots the ratios of true positive rates to true negative rates for each
     compression level.
@@ -284,10 +382,10 @@ def main(csv_path):
     models = load_model_data(csv_path)
 
     # Plot accuracies against each compression level.
-    plot_accuracy(models)
+    plot_accuracy_heatmap(models)
 
     # Plot TPR vs. TNR of models against each compression level.
-    plot_tpr_vs_tnr(models)
+    plot_tpr_vs_tnr_basic(models)
 
     # Plot accuracy, TPR, and TNR for models trained on all compression levels.
     plot_combined(models)
